@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Developer Sign Up</title>
+    <link rel="shortcut icon" href="{{ url_for('static', filename='img/icon.png') }}">
+
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@4.12.10/dist/full.min.css" rel="stylesheet" type="text/css" />
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        inter: ['Inter', 'sans-serif'],
+                    },
+                },
+            },
+        };
+    </script>
+    <script src="https://kit.fontawesome.com/8584240c12.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Manrope:wght@200..800&display=swap"
+        rel="stylesheet">
+
+</head>
+
+<body class="font-inter">
+    <header>
+        <div class="navbar bg-base-100 justify-start rounded-lg">
+            <div class="ml-5 lg:ml-20 mt-5 px-0.5 py-0.5 w-[80px] lg:w-[120px] relative">
+                <div
+                    class="absolute inset-0 bg-gradient-to-r from-sky-700 via-purple-400 to-violet-700 rounded-xl p-[2px]">
+                </div>
+                <a href="/">
+                    <img alt="Tailwind CSS Navbar component" src="{{ url_for('static', filename='img/logo.jpg') }}"
+                        alt="Logo" class="rounded-lg relative z-10">
+                </a>
+            </div>
+        </div>
+    </header>
+
+
+    <section class="flex mt-5 flex-col md:flex-row">
+        <div class="bg-gradient-to-r from-blue-800 to-blue-900 pr-20 md:w-1/2">
+            <div class="ml-7 lg:ml-20 text-white">
+                <h1 class="text-bold text-2xl mt-3">CREATE DEVELOPER ACCOUNT</h1>
+                <form id="developerForm" class="mt-10">
+                    <p class="text-l text-bold">Developer Name</p>
+                    <input type="text" id="user_name" name="user_name"
+                        class="pl-5 block rounded-lg w-full lg:w-[500px] h-[35px] lg:h-[40px] mt-3 bg-white text-black"
+                        placeholder="Enter Developer Name" required>
+
+                    <p class="text-l text-bold mt-5">Enter Developer Company Name</p>
+                    <input type="text" id="company_name" name="company_name"
+                        class="pl-5 block rounded-lg w-full lg:w-[500px] h-[35px] lg:h-[40px] mt-3 bg-white text-black"
+                        placeholder="Enter Developer Company Name" required>
+
+                    <p class="text-l text-bold mt-5">Enter Company Email</p>
+                    <input type="email" id="email" name="email"
+                        class="pl-5 block rounded-lg w-full lg:w-[500px] h-[35px] lg:h-[40px] mt-3 bg-white text-black"
+                        placeholder="Enter Company Email" required>
+
+                    <p class="text-l text-bold mt-5">Enter Publisher (if any)</p>
+                    <select id="publisher_name" name="publisher_name"
+                        class="pl-5 block rounded-lg w-full lg:w-[500px] h-[40px] mt-3 bg-white text-black" required>
+                        <option value="" disabled selected>Select Publisher</option>
+                        <option value="bandai_namco">Bandai Namco</option>
+                        <option value="playstation_publishing">Playstation Publishing</option>
+                        <option value="xbox_game_studios">Xbox Game Studios</option>
+                        <option value="square_enix">SquareEnix</option>
+                        <option value="sega">Sega</option>
+                        <option value="self">Self</option>
+                    </select>
+
+                    <p class="text-l text-bold mt-5">Enter Password</p>
+                    <input type="password" id="password" name="password"
+                        class="pl-5 block rounded-lg w-full lg:w-[500px] h-[35px] lg:h-[40px] mt-3 bg-white text-black"
+                        placeholder="Enter Password" required>
+
+                    <div id="error-message" class="text-red-500 text-center mt-3 hidden">Please fill in all fields.
+                    </div>
+
+                    <div class="mt-6 text-center mb-10">
+                        <button type="button"
+                            class="px-5 h-[40px] lg:w-[300px] lg:h-[50px] bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg text-bold"
+                            onclick="sendDeveloperRegistrationData()"> <!-- Ensure this is correct -->
+                            Create Account
+                        </button>
+                    </div>
+                </form>
+
+            </div>
+        </div>
+        <div
+            class="justify-items-center relative bg-[url('{{ url_for('static', filename='img/bg-1.jpg') }}')] bg-cover bg-center w-full h-[500px] lg:h-[800px] md:block hidden">
+            <div class="absolute inset-0 bg-blue-800 opacity-20 z-0"></div>
+        </div>
+    </section>
+
+    <footer
+        class="flex flex-col lg:flex-row sm:justify-between lg:justify-center items-center text-neutral-content p-6 lg:p-10 gap-6 lg:gap-[50rem]">
+        <!-- Logo and Description -->
+        <aside class="flex flex-col items-center text-center lg:text-left lg:items-start">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="80" height="80" class="mb-4">
+                <defs>
+                    <linearGradient id="colorful-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" style="stop-color: blue; stop-opacity: 1" />
+                        <stop offset="33%" style="stop-color: pink; stop-opacity: 1" />
+                        <stop offset="66%" style="stop-color: purple; stop-opacity: 1" />
+                        <stop offset="100%" style="stop-color: violet; stop-opacity: 1" />
+                    </linearGradient>
+                </defs>
+                <path d="M30 20 h20 a15 15 0 0 1 0 30 h-20 z 
+                         M30 50 h20 a15 15 0 0 1 0 30 h-20 z" fill="url(#colorful-gradient)" />
+            </svg>
+
+            <p class="text-sm lg:text-base">
+            <h1 class="font-bold text-lg lg:text-xl">
+                <i class="fa-regular fa-copyright"></i> Bashpo
+            </h1>
+            Find everything you love, in one place.
+            </p>
+        </aside>
+
+        <!-- Social Links -->
+        <nav class="text-center lg:text-left">
+            <h6 class="footer-title text-sm lg:text-base font-bold mb-4">Find Us on Socials</h6>
+            <div class="flex justify-center lg:justify-start gap-4">
+                <a href="">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                        class="fill-current">
+                        <path
+                            d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z">
+                        </path>
+                    </svg>
+                </a>
+                <a href="">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                        class="fill-current">
+                        <path
+                            d="M9 8h-3v4h3v12h5v-12h3.642l.358-4h-4v-1.667c0-.955.192-1.333 1.115-1.333h2.885v-5h-3.808c-3.596 0-5.192 1.583-5.192 4.615v3.385z">
+                        </path>
+                    </svg>
+                </a>
+                <a href="">
+                    <i class="fa-brands fa-instagram text-xl"></i>
+                </a>
+                <a href="">
+                    <i class="fa-brands fa-x-twitter text-xl"></i>
+                </a>
+                <a href="">
+                    <i class="fa-brands fa-tiktok text-xl"></i>
+                </a>
+                <a href="">
+                    <i class="fa-brands fa-discord text-xl"></i>
+                </a>
+            </div>
+        </nav>
+    </footer>
+    <script>
+        async function sendDeveloperRegistrationData() {
+            const formData = {
+                user_name: document.getElementById("user_name").value,
+                email: document.getElementById("email").value,
+                password: document.getElementById("password").value,
+                company_name: document.getElementById("company_name").value,
+                publisher_name: document.getElementById("publisher_name").value,
+            };
+
+            try {
+                const response = await fetch("/create_developer", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify(formData),
+                });
+
+                const result = await response.json();
+
+                // Show response as an alert and redirect if successful
+                if (response.ok) {
+                    alert(result.success);  // Success message
+                    window.location.href = result.redirect_url;  // Redirect to index or home page
+                } else {
+                    alert(result.error);  // Show error message
+                }
+            } catch (error) {
+                console.error("Error:", error);
+                alert("An unexpected error occurred. Please try again.");
+            }
+        }
+    </script>
+
+</body>
+
+</html>

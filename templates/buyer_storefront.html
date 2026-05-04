@@ -1,0 +1,1052 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Bashpo Home</title>
+    <link rel="shortcut icon" href="{{ url_for('static', filename='img/icon.png') }}">
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@4.12.10/dist/full.min.css" rel="stylesheet" type="text/css" />
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        inter: ['Inter', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <script src="https://kit.fontawesome.com/8584240c12.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/flowbite/1.6.0/flowbite.min.js"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Manrope:wght@200..800&display=swap"
+        rel="stylesheet" />
+</head>
+
+<body class="font-inter">
+    <!-- Header Section -->
+    <header id="navbar"
+        class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-2 p-2 bg-base-100 rounded-lg">
+        <div id = 'navbar1' class="flex navbar bg-base-100 justify-start rounded-lg">
+            <div class="ml-5 lg:ml-20 mt-5 px-0.5 py-0.5 w-[80px] lg:w-[120px] relative">
+                <div class="absolute inset-0 bg-gradient-to-r from-sky-700 via-purple-400 to-violet-700 rounded-xl p-2">
+                </div>
+                <a href="/">
+                    <img alt="Tailwind CSS Navbar component" src="{{ url_for('static', filename='img/logo.jpg') }}"
+                        alt="Logo" class="rounded-lg relative z-10">
+                </a>
+            </div>
+        </div>
+        <div class="mt-3 lg:mt-5 lg:mr-5">
+            <select id="user-name" name="user_name"
+                class="w-[70%] block rounded-lg lg:w-[200px] h-[40px] bg-gradient-to-r from-[#515151] to-[#676161] text-[#1A97F0] font-bold focus:ring-2 focus:ring-white focus:text-black appearance-none"
+                onchange="handleDropdownChange(this)" required>
+                <!-- Disabled Option (Gradient Background) -->
+                <option value="" disabled selected
+                    class="bg-gradient-to-r from-[#515151] to-[#676161] text-[#1A97F0] text-center font-bold drop-shadow-md">
+                    {{ buyer_username }} {{ balance }} $
+                </option>
+
+                <option value="view_profile" class="bg-[#b3b3b3] text-white">View My Profile</option>
+                <option value="AddMonitorWallet" class="bg-[#b3b3b3] text-white">Add and Monitor Wallet</option>
+                <option value="update_pass" class="bg-[#b3b3b3] text-white">Update Password</option>
+                <option value="logout" class="bg-[#b3b3b3] text-white">Logout</option>
+            </select>
+        </div>
+    </header>
+
+
+
+
+    <div id="UpdatePasswordModal" tabindex="-1" aria-hidden="true"
+        class="hidden overflow-y-auto overflow-x-hidden fixed inset-0 z-50 flex justify-center items-center backdrop-blur-sm bg-black bg-opacity-40">
+        <div class="relative p-4 w-full lg:max-w-xl lg:h-full">
+            <!-- Modal content -->
+            <div class="h-[50%] w-[65%] lg:h-auto lg:w-full relative p-4 bg-white rounded-lg shadow dark:bg-gray-800">
+                <!-- Modal header -->
+                <div class="flex justify-between mb-4 rounded-t sm:mb-5">
+                    <div class="text-lg text-gray-900 md:text-xl dark:text-white">
+                        <h3 class="font-semibold">Update Password</h3>
+                    </div>
+
+                </div>
+
+                <!-- Modal body: Update password form -->
+                <form id="updatePasswordForm" action="/update_password" method="POST" class="space-y-4">
+                    <div>
+                        <label for="current-password"
+                            class="block text-sm font-medium text-gray-900 dark:text-white">Current Password</label>
+                        <input type="password" id="current-password" name="current_password" required
+                            class="mt-2 w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    </div>
+                    <div>
+                        <label for="new-password" class="block text-sm font-medium text-gray-900 dark:text-white">New
+                            Password</label>
+                        <input type="password" id="new-password" name="new_password" required
+                            class="mt-2 w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    </div>
+                    <div>
+                        <label for="confirm-password"
+                            class="block text-sm font-medium text-gray-900 dark:text-white">Confirm New Password</label>
+                        <input type="password" id="confirm-password" name="confirm_password" required
+                            class="mt-2 w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    </div>
+
+                    <!-- Error and Success Messages -->
+                    <div id="password-error" class="text-red-600 hidden">Passwords do not match.</div>
+                    <div id="password-success" class="text-green-600 hidden">Password updated successfully!</div>
+
+                    <div class="mt-4 flex justify-end space-x-2">
+                        <button type="button" class="px-4 py-2 bg-gray-600 text-white rounded-lg"
+                            data-modal-toggle="UpdatePasswordModal">Cancel</button>
+                        <button type="submit" id="submit-password"
+                            class="px-4 py-2 bg-blue-600 text-white rounded-lg">Update</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <section class="mx-auto">
+        <div class="mx-auto grid relative min-h-screen bg-blue-950 opacity-100">
+            <div class="absolute right-0 top-0 flex flex-col gap-4 p-2 items-end">
+                <div class="w-[80%] lg:w-full flex flex-col lg:flex-row gap-4 mt-5">
+                    {% if cart_status=='1' %}
+                    <a href="/ViewCart">
+
+                        <button type="button"
+                            class="lg:w-[200px] h-[45px] font-bold bg-gradient-to-r from-[#2B983F] to-[#115C1E] text-white rounded-lg">
+                            View Cart({{cart_value}})
+                        </button>
+                    </a>
+                    {% else %}
+                    <button type="button"
+                        class="w-full lg:w-[200px] h-[45px] font-bold bg-gradient-to-r from-[#2B983F] to-[#115C1E] text-white rounded-lg">
+                        View Cart
+                    </button>
+                    {% endif %}
+                    <button type="button" id="ViewWishlistedGamesButton" data-modal-target="ViewWishlistedGamesModal"
+                        data-modal-toggle="ViewWishlistedGamesModal"
+                        class="w-full lg:w-[200px] h-[45px] font-bold bg-gradient-to-r from-[#3E7C9B] to-[#4E6C9F] text-white rounded-lg">
+                        WishList({{wishlist_value}})
+                    </button>
+
+                </div>
+                <!-- Search Bar -->
+                <form class="w-[80%] lg:w-full max-w-md relative">
+                    <label for="default-search"
+                        class="mb-2 text-sm font-medium text-gray-900 sr-only dark:text-white">Search</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-3 flex items-center pointer-events-none">
+                            <svg class="w-4 h-4 text-gray-500 dark:text-gray-400" aria-hidden="true"
+                                xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
+                                <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
+                                    stroke-width="2" d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z" />
+                            </svg>
+                        </div>
+                        <input type="search" id="default-search"
+                            class="block w-full p-4 pl-10 text-xs lg:text-sm text-gray-900 border border-gray-300 rounded-lg bg-gray-50 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                            placeholder="Search for Games" autocomplete="off" required />
+                        <!-- <button type="submit"
+                            class="text-white absolute right-2.5 bottom-2.5 bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-4 py-2 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">
+                            Search
+                        </button> -->
+                    </div>
+
+                    <!-- Dropdown container for autocomplete -->
+                    <div id="autocomplete-dropdown"
+                        class="absolute bg-[#3d4450] shadow-lg rounded-lg max-h-80 overflow-y-auto w-96 mt-2 border border-gray-200 hidden"
+                        style="z-index: 50;">
+                        <!-- Results will be dynamically added here -->
+                    </div>
+                </form>
+            </div>
+
+            <div>
+
+            </div>
+            <div id="controls-carousel" class="mt-[10rem] relative mx-auto w-[70%] lg:w-[60%] h-[75%] lg:h-[auto]"
+                data-carousel="static">
+                <h1 class="text-3xl font-bold font-istok tracking-widest">Featured & Recommended</h1>
+                <div class="mx-auto mt-5 relative h-[500px] overflow-hidden rounded-lg">
+                    <div class="hidden duration-700 ease-in-out" data-carousel-item="active">
+                        <a href="/ViewGamePage/{{featured_games[0][0]}}">
+                            <img src="{{ url_for('static', filename=featured_games[0][2]) }}"
+                                class="absolute block w-[100%] h-[80%] lg:w-full lg:h-full object-cover -translate-x-1/2 -translate-y-1/2 top-1/2 left-1/2 rounded-lg"
+                                alt="Slide 1">
+                        </a>
+                    </div>
+                    <div class="hidden duration-700 ease-in-out" data-carousel-item>
+                        <a href="/ViewGamePage/{{featured_games[1][0]}}">
+                            <img src="{{ url_for('static', filename=featured_games[1][2]) }}"
+                                class="absolute block w-[100%] h-[80%] lg:w-full lg:h-full object-cover -translate-x-1/2 -translate-y-1/2 top-1/2 left-1/2 rounded-lg"
+                                alt="Slide 2">
+                        </a>
+                    </div>
+                    <div class="hidden duration-700 ease-in-out" data-carousel-item>
+                        <a href="/ViewGamePage/{{featured_games[2][0]}}">
+                            <img src="{{ url_for('static', filename=featured_games[2][2]) }}"
+                                class="absolute block w-[100%] h-[80%] lg:w-full lg:h-full object-cover -translate-x-1/2 -translate-y-1/2 top-1/2 left-1/2 rounded-lg"
+                                alt="Slide 3">
+                        </a>
+                    </div>
+                </div>
+                <div
+                    class="absolute z-30 bg-transparent-10 rounded-xl flex -translate-x-1/2 bottom-5 left-1/2 space-x-3 rtl:space-x-reverse">
+                    <button type="button" class="w-3 h-3 rounded-full bg-black" aria-current="true" aria-label="Slide 1"
+                        data-carousel-slide-to="0"></button>
+                    <button type="button" class="w-3 h-3 rounded-full bg-white" aria-current="false"
+                        aria-label="Slide 2" data-carousel-slide-to="1"></button>
+                    <button type="button" class="w-3 h-3 rounded-full bg-white" aria-current="false"
+                        aria-label="Slide 3" data-carousel-slide-to="2"></button>
+                </div>
+                <!-- Left Button -->
+                <button type="button"
+                    class="absolute top-1/2 left-4 z-30 flex items-center justify-center w-10 h-10 bg-black/50 hover:bg-black/70 rounded-full focus:outline-none"
+                    data-carousel-prev>
+                    <svg class="w-6 h-6 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 6 10">
+                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M5 1 1 5l4 4" />
+                    </svg>
+                </button>
+                <!-- Right Button -->
+                <button type="button"
+                    class="absolute top-1/2 right-4 z-30 flex items-center justify-center w-10 h-10 bg-black/50 hover:bg-black/70 rounded-full focus:outline-none"
+                    data-carousel-next>
+                    <svg class="w-6 h-6 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 6 10">
+                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="m1 9 4-4-4-4" />
+                    </svg>
+                </button>
+
+            </div>
+        </div>
+    </section>
+
+    <section class="bg-blue-950 opacity-100">
+
+        <div class="lg:mx-[25rem] flex flex-col justify-start items-start min-h-screen">
+            <div class="mx-auto mt-0">
+                <h1 class="text-xl lg:text-2xl font-bold">Prioritize available games by:</h1>
+            </div>
+
+            <div class="mx-auto flex flex-col lg:flex-row justify-center items-center gap-4 mt-4 mb-12">
+                <div class="relative">
+                    <select id="genre" name="genre"
+                        class="items-center justify-center block rounded-lg w-[150px] lg:w-[200px] h-[40px] bg-gradient-to-r from-[#3E7C7F] to-[#1E7C9F] text-black text-center"
+                        onchange="handleDropdownChangeGenre(this)" required>
+                        <option value="" disabled selected>Genre</option>
+                        <option value="Action" id="Action">Action</option>
+                        <option value="Racing" id="Racing">Racing</option>
+                        <option value="Strategy" id="Strategy">Strategy</option>
+                        <option value="Adventure" id="Adventure">Adventure</option>
+                        <option value="Souls" id="Souls">Souls</option>
+                    </select>
+                </div>
+                <div class="relative">
+                    <select id="year" name="year"
+                        class="block rounded-lg w-[150px] lg:w-[200px] h-[40px] bg-gradient-to-r from-[#3E7C7F] to-[#1E7C9F] text-black text-center"
+                        onchange="handleDropDownChangeYOR(this)" required>
+                        <option value="" disabled selected>Year of Release</option>
+                        <option value="ascending">Ascending</option>
+                        <option value="descending">Descending</option>
+                    </select>
+                </div>
+                <div class="relative">
+                    <select id="price" name="price"
+                        class="block rounded-lg w-[150px] lg:w-[200px] h-[40px] bg-gradient-to-r from-[#3E7C7F] to-[#1E7C9F] text-black text-center"
+                        onchange="handleDropDownChangePrice(this)" required>
+                        <option value="" disabled selected>Price</option>
+                        <option value="low-to-high">Low to High</option>
+                        <option value="high-to-low">High to Low</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="flex justify-center items-center flex-1 w-full mt-5">
+                <div class="w-[95%] h-auto lg:w-[1200px] bg-[#0A0221] rounded-xl" id="SortingTest">
+                    {% for games in game_list %}
+                    <a href="/ViewGamePage/{{games[0]}}" class="block game-item" data-yt-src="https://www.youtube.com/embed/{{games[7]}}?autoplay=1&mute=1">
+                        <div class="px-2 flex justify-between items-center lg:mx-[10rem] mx-[1rem] my-[1rem] lg:my-[3rem] lg:h-[120px] lg:w-[820px] bg-[#1e3647] rounded-xl">
+                            <div class="flex items-center mx-5 h-[auto]">
+                                <img src="{{ url_for('static', filename = games[3]) }}" alt="Game-Logo" class="mx-1 my-4 w-1/3 rounded-xl">
+                                <div class="ml-5">
+                                    <h1 class="text-l lg:text-xl font-bold text-white">{{games[0]}}</h1>
+                                    <h1 class="text-l lg:text-xl text-slate-300 font-semibold mt-5 italic">{{games[1]}}</h1>
+                                </div>
+                            </div>
+                            <div class="flex flex-col items-center justify-center">
+                                {% if games[5] == '1' %}
+                                <h1 class="flex items-center text-l lg:text-xl font-bold">
+                                    <span class="bg-[#335c1b] text-[#3ae310] text-sm font-bold py-1 px-2 rounded-lg shadow-md mr-2">
+                                        {{games[6]}}%
+                                    </span>
+                                    <span class="text-white line-through mr-2">{{games[4]}}$</span>
+                                    <span class="text-[#3ae310]">{{games[2]}}$</span>
+                                </h1>
+                                {% else %}
+                                <h1 class="text-white text-l lg:text-xl font-bold"> {{games[2]}}$</h1>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </a>
+                    {% endfor %}
+
+
+                </div>
+            </div>
+
+        </div>
+
+        <div id="popover-image" class="absolute z-10 invisible opacity-0 transition-opacity duration-300 bg-white border border-gray-200 rounded-lg shadow-lg w-96 p-4 dark:bg-gray-800 dark:border-gray-600">
+            <div class="relative w-full h-0" style="padding-top: 56.25%;">
+                <iframe id="yt-player" 
+                        src="https://www.youtube.com/embed/mr15Xzb1Ook?autoplay=1&mute=1" 
+                        title="Tailwind in 100 Seconds" 
+                        class="absolute top-0 left-0 w-full h-full rounded-lg" 
+                        frameborder="0" 
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
+                        referrerpolicy="strict-origin-when-cross-origin" 
+                        allowfullscreen>
+                </iframe>
+            </div>
+        </div>
+
+    </section>
+    <div id="ViewWishlistedGamesModal" tabindex="-1" aria-hidden="true"
+        class="hidden overflow-y-auto overflow-x-hidden fixed inset-0 z-50 justify-center items-center flex">
+        <div class="relative p-4 bg-white rounded-lg shadow dark:bg-gray-800 sm:p-5 w-full sm:w-1/2 lg:w-1/3">
+            <!-- Modal content -->
+            <div class="relative">
+                <!-- Modal header -->
+                <div class="flex justify-between mb-4 rounded-t sm:mb-5">
+                    <div class="text-lg text-gray-900 md:text-xl dark:text-white">
+                        <h3 class="font-semibold">
+                            {{buyer_username}}'s Wishlist:
+                        </h3>
+                    </div>
+                    <button type="button"
+                        class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 inline-flex dark:hover:bg-gray-600 dark:hover:text-white"
+                        data-modal-toggle="ViewWishlistedGamesModal">
+                        <svg aria-hidden="true" class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"
+                            xmlns="http://www.w3.org/2000/svg">
+                            <path fill-rule="evenodd"
+                                d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                                clip-rule="evenodd"></path>
+                        </svg>
+                        <span class="sr-only">Close modal</span>
+                    </button>
+                </div>
+
+                <!-- Search Bar -->
+                <div class="mb-4">
+                    <input type="text" id="searchInput_wishlistedgames" placeholder="Search games..."
+                        class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring focus:border-blue-300">
+                </div>
+
+                <!-- Game List -->
+                <div class="mt-4">
+                    <div class="flex justify-between font-semibold mb-4">
+                        <div class="w-1/4 text-left">Game Name</div>
+                        <div class="w-1/4 text-left">Current Price</div>
+                        <div class="w-1/4 text-left">Action</div>
+                    </div>
+                    <ul id="buyerList" class="list-none" id="WishlistJinja">
+                        {% for wishlist in wishlist_user %}
+                        <li class="flex justify-between items-center mb-4">
+                            <span class="w-1/4">{{ wishlist[1] }}</span>
+                            <!-- Game Name -->
+                            <!-- Status -->
+                            {% if wishlist[4]=='1' %}
+                            <div class="flex items-center gap-x-1">
+                                <span class="line-through">{{ wishlist[2] }}$</span>
+                                <span>{{ wishlist[3] }}$</span>
+                            </div>
+
+                            {% else %}
+                            <span class="w-1/4 ">{{ wishlist[3] }}$</span>
+                            {% endif %} <!-- Base Price -->
+                            <div class="w-1/4 text-left">
+
+                                <button type="button"
+                                    class="text-white bg-red-600 hover:bg-red-700 focus:ring-4 focus:outline-none focus:ring-red-300 font-medium rounded-lg text-xs px-5 py-1.5 text-center dark:bg-red-500 dark:hover:bg-red-600 dark:focus:ring-red-900"
+                                    data-username="{{wishlist[0]}}" data-game_name_wishlist="{{ wishlist[1] }}"
+                                    onclick="RemoveFromWishList(this)">
+                                    Remove
+                                </button>
+                                <!--end of unused feature(for now)-->
+
+
+
+                                <button type="button"
+                                    class="text-white bg-green-600 hover:bg-green-700 focus:ring-4 focus:outline-none focus:ring-green-300 font-medium rounded-lg text-xs px-3 py-1.5 dark:bg-green-500 dark:hover:bg-green-600 dark:focus:ring-green-900"
+                                    data-username="{{wishlist[0]}}" data-game_name="{{ wishlist[1] }}"
+                                    data-game_name_cart="{{ wishlist[1] }}" data-game_sale_status="{{wishlist[4]}}"
+                                    onclick="AddtoCart(this)">
+
+                                    Add to Cart
+                                </button>
+
+                            </div> <!-- Action -->
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="popup-modal" tabindex="-1"
+        class="hidden overflow-y-auto overflow-x-hidden fixed inset-0 z-50 flex justify-center items-center backdrop-blur-sm bg-black bg-opacity-40">
+        <div class="relative p-4 w-full max-w-md max-h-full">
+            <div class="relative bg-white rounded-lg shadow dark:bg-gray-700">
+                <button type="button"
+                    class="absolute top-3 end-2.5 text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white"
+                    data-modal-hide="popup-modal">
+                    <svg class="w-3 h-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none"
+                        viewBox="0 0 14 14">
+                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6" />
+                    </svg>
+                    <span class="sr-only">Close modal</span>
+                </button>
+                <div class="p-4 md:p-5 text-center">
+                    <svg class="mx-auto mb-4 text-gray-400 w-12 h-12 dark:text-gray-200" aria-hidden="true"
+                        xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
+                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M10 11V6m0 8h.01M19 10a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                    </svg>
+                    <h3 class="mb-5 text-lg font-normal text-gray-500 dark:text-gray-400">Modal Title</h3>
+                    <div class="modal-body"></div>
+                    <button data-modal-hide="popup-modal" type="button"
+                        class="text-white bg-red-600 hover:bg-red-800 focus:ring-4 focus:outline-none focus:ring-red-300 dark:focus:ring-red-800 font-medium rounded-lg text-sm inline-flex items-center px-5 py-2.5 text-center">
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <footer id="footer"
+        class="flex flex-col lg:flex-row sm:justify-between lg:justify-center items-center bg-neutral text-neutral-content p-6 lg:p-10 gap-6 lg:gap-[50rem]">
+        <!-- Logo and Description -->
+        <aside class="flex flex-col items-center text-center lg:text-left lg:items-start">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="80" height="80" class="mb-4">
+                <defs>
+                    <linearGradient id="colorful-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" style="stop-color: blue; stop-opacity: 1" />
+                        <stop offset="33%" style="stop-color: pink; stop-opacity: 1" />
+                        <stop offset="66%" style="stop-color: purple; stop-opacity: 1" />
+                        <stop offset="100%" style="stop-color: violet; stop-opacity: 1" />
+                    </linearGradient>
+                </defs>
+                <path d="M30 20 h20 a15 15 0 0 1 0 30 h-20 z 
+                         M30 50 h20 a15 15 0 0 1 0 30 h-20 z" fill="url(#colorful-gradient)" />
+            </svg>
+
+            <p class="text-sm lg:text-base">
+            <h1 class="font-bold text-lg lg:text-xl">
+                <i class="fa-regular fa-copyright"></i> Bashpo
+            </h1>
+            Find everything you love, in one place.
+            </p>
+        </aside>
+
+        <!-- Social Links -->
+        <nav class="text-center lg:text-left">
+            <h6 class="footer-title text-sm lg:text-base font-bold mb-4">Find Us on Socials</h6>
+            <div class="flex justify-center lg:justify-start gap-4">
+                <a href="">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                        class="fill-current">
+                        <path
+                            d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z">
+                        </path>
+                    </svg>
+                </a>
+                <a href="">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                        class="fill-current">
+                        <path
+                            d="M9 8h-3v4h3v12h5v-12h3.642l.358-4h-4v-1.667c0-.955.192-1.333 1.115-1.333h2.885v-5h-3.808c-3.596 0-5.192 1.583-5.192 4.615v3.385z">
+                        </path>
+                    </svg>
+                </a>
+                <a href="">
+                    <i class="fa-brands fa-instagram text-xl"></i>
+                </a>
+                <a href="">
+                    <i class="fa-brands fa-x-twitter text-xl"></i>
+                </a>
+                <a href="">
+                    <i class="fa-brands fa-tiktok text-xl"></i>
+                </a>
+                <a href="">
+                    <i class="fa-brands fa-discord text-xl"></i>
+                </a>
+            </div>
+        </nav>
+    </footer>
+
+    <script>
+
+        // Function to handle the "Update Password" modal
+        function showUpdatePasswordModal() {
+            const modal = document.getElementById('UpdatePasswordModal');
+            modal.classList.remove('hidden');
+            document.body.style.overflow = 'hidden'; // Prevent body scrolling when modal is open
+        }
+
+        // Function to initialize the modal for password update
+        function initializeModal_update_password() {
+            const modal = document.getElementById('UpdatePasswordModal');
+            const closeModalButton = modal.querySelector('[data-modal-toggle="UpdatePasswordModal"]');
+
+            // Close the modal when clicking the cancel button
+            closeModalButton.addEventListener('click', function (event) {
+                event.stopPropagation(); // Prevent event from bubbling to the modal
+                modal.classList.add('hidden');
+                document.body.style.overflow = ''; // Restore body scrolling
+            });
+
+            // Close the modal if clicking outside the modal content
+            modal.addEventListener('click', function (event) {
+                if (event.target === modal) { // Ensure it's the modal background being clicked
+                    modal.classList.add('hidden');
+                    document.body.style.overflow = ''; // Restore body scrolling
+                }
+            });
+        }
+
+
+        // Function to handle form submission for password update
+        document.getElementById('updatePasswordForm').addEventListener('submit', function (event) {
+            event.preventDefault(); // Prevent default form submission behavior
+
+            const currentPassword = document.getElementById('current-password').value;
+            const newPassword = document.getElementById('new-password').value;
+            const confirmPassword = document.getElementById('confirm-password').value;
+
+            // Check if the new passwords match
+            if (newPassword !== confirmPassword) {
+                document.getElementById('password-error').classList.remove('hidden');
+                document.getElementById('password-success').classList.add('hidden');
+            } else {
+                // Send the password update request (if the new passwords match)
+                fetch('/update_password', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ current_password: currentPassword, new_password: newPassword })
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            document.getElementById('password-success').classList.remove('hidden');
+                            document.getElementById('password-error').classList.add('hidden');
+                            // Redirect to the homepage after a delay
+                            setTimeout(() => {
+                                window.location.href = '/logout';
+                            }, 2000);
+                        } else {
+                            alert(data.error || 'Something went wrong!');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('Something went wrong!');
+                    });
+            }
+        });
+
+        // Initialize modal functionality on DOMContentLoaded
+        window.addEventListener('DOMContentLoaded', function () {
+            initializeModal_update_password();
+        });
+
+
+
+
+
+        function handleDropdownChange(selectElement) {
+            const selectedValue = selectElement.value;
+            selectElement.value = ""; // This resets the dropdown to the placeholder option
+
+            if (selectedValue === "logout") {
+                logout(); // Call the logout function
+            } else if (selectedValue === "AddMonitorWallet") {
+
+                window.location.href = '/AddMonitorWallet'; // changes will be made
+
+
+            } else if (selectedValue === "update_pass") {
+                showUpdatePasswordModal(); // Redirect to update password page
+            }
+            else if (selectedValue === "view_profile") {
+                window.location.href = '/ViewMyProfile'; // Redirect to update password page
+            }
+        }
+
+        function handleDropdownChangeGenre(selectElement) {
+            const selectedValue = selectElement.value;
+
+
+            if (selectedValue === "Action") {
+                search_filter('game_genre', selectedValue);
+            } else if (selectedValue === "Racing") {
+
+                search_filter('game_genre', selectedValue)
+
+
+            } else if (selectedValue === "Strategy") {
+                search_filter('game_genre', selectedValue);
+            }
+            else if (selectedValue === "Adventure") {
+                search_filter('game_genre', selectedValue);
+            }
+            else if (selectedValue === "Souls") {
+                search_filter('game_genre', selectedValue);
+            }
+        }
+        function handleDropDownChangeYOR(selectElement) {
+            const selectedValue = selectElement.value;
+            // This resets the dropdown to the placeholder option
+            console.log(selectedValue)
+            if (selectedValue === "ascending") {
+                search_filter('release_year', selectedValue);
+            } else if (selectedValue === "descending") {
+
+                search_filter('release_year', selectedValue)
+
+
+            }
+
+        }
+
+        function handleDropDownChangePrice(selectElement) {
+            const selectedValue = selectElement.value;
+            // This resets the dropdown to the placeholder option
+            console.log(selectedValue)
+            if (selectedValue === "low-to-high") {
+                search_filter('actual_price', selectedValue);
+            } else if (selectedValue === "high-to-low") {
+
+                search_filter('actual_price', selectedValue)
+
+
+            }
+
+        }
+
+
+
+        function search_filter(orderbytype, secondcondition) {
+            const ordertype = orderbytype
+            const query_filter = secondcondition
+            const SortingTest = document.getElementById('SortingTest')
+            console.log(ordertype, query_filter)
+            if (ordertype) {
+                fetch('/SearchFilterApi', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ ordertype: ordertype, query_filter: query_filter })
+                })
+                    .then(response => {
+
+                    })
+                    .then(() => {
+
+                        fetch("/SearchFilterReturner", {
+                            method: "GET"
+                        })
+                            .then(response => {
+                                return response.text();
+                            })
+                            .then(html => {
+                                SortingTest.innerHTML = html
+                                initializePopover();
+                            })
+
+                    }
+                    )
+            }
+
+
+        }
+        function initializeSearch_wishlistedgames() {
+            const searchInput = document.getElementById('searchInput_wishlistedgames');
+            const userList = document.querySelectorAll('#ViewWishlistedGamesModal ul li');
+
+            searchInput.addEventListener('input', function () {
+                const filter = searchInput.value.toLowerCase();
+
+                userList.forEach((userItem) => {
+                    const username = userItem.querySelector('span').textContent.toLowerCase();
+
+                    // Show or hide the user based on the search input
+                    if (username.includes(filter)) {
+                        userItem.style.display = ''; // Show
+                    } else {
+                        userItem.style.display = 'none'; // Hide
+                    }
+                });
+            });
+        }
+        // Function to initialize modal functionality
+        function initializeModal_wishlistedgames() {
+            const openModalButton = document.getElementById('ViewWishlistedGamesButton');
+            const modal = document.getElementById('ViewWishlistedGamesModal');
+            const closeModalButton = modal.querySelector('[data-modal-toggle="ViewWishlistedGamesModal"]');
+
+            // Open the modal when the button is clicked
+            openModalButton.addEventListener('click', function () {
+                modal.classList.remove('hidden');
+                modal.classList.add('flex'); // Ensure flex is added when shown
+                document.body.style.overflow = 'hidden';
+            });
+
+            closeModalButton.addEventListener('click', function () {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex'); // Remove flex when hidden
+                document.body.style.overflow = '';
+            });
+
+            // Close the modal if the user clicks outside of the modal content (overlay click)
+            modal.addEventListener('click', function (event) {
+                if (event.target === modal) {
+                    modal.classList.add('hidden');
+                    document.body.style.overflow = '';
+                }
+            });
+        }
+        window.addEventListener('DOMContentLoaded', function () {
+            initializeSearch_wishlistedgames();
+            initializeModal_wishlistedgames();
+
+
+        });
+
+        function AddtoCart(button) {
+            const game_name = button.getAttribute('data-game_name_cart')
+            const was_it_on_sale = button.getAttribute('data-game_sale_status')
+
+            fetch('/AddtoCart', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ game_name: game_name, was_it_on_sale: was_it_on_sale })
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.message) {
+                        const modalTitle = document.querySelector('#popup-modal h3');
+                        const modalBody = document.querySelector('#popup-modal .modal-body');
+
+                        modalTitle.innerHTML = data.message;
+
+
+                        // Show the modal
+                        const modal = document.getElementById('popup-modal');
+                        modal.classList.remove('hidden'); // Display success message
+
+
+                    } else {
+                        alert(data.error); // Display error message
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Something went wrong!');
+                });
+
+        }
+        function RemoveFromWishList(button) {
+            const game_name = button.getAttribute('data-game_name_wishlist')
+            const listItem = button.closest('li');
+
+            fetch('/RemoveFromWishlist', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ game_name: game_name })
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.message) {
+                        const modalTitle = document.querySelector('#popup-modal h3');
+                        const modalBody = document.querySelector('#popup-modal .modal-body');
+
+                        modalTitle.innerHTML = data.message;
+
+
+                        // Show the modal
+                        const modal = document.getElementById('popup-modal');
+                        modal.classList.remove('hidden'); // Display success message
+                        listItem.remove();
+
+                    } else {
+                        alert(data.error); // Display error message
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Something went wrong!');
+                });
+
+        }
+        const searchInput = document.getElementById('default-search');
+        const dropdown = document.getElementById('autocomplete-dropdown');
+
+        // Event listener for search input
+        searchInput.addEventListener('input', function () {
+            const query = this.value.trim();
+            console.log(query)
+            if (query.length > 2) { // Only search after 2 characters
+                // Send query to Flask backend
+                fetch('/search', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ query: query }),
+                })
+                    .then((response) => response.json())
+                    .then((data) => {
+                        dropdown.innerHTML = ''; // Clear previous results
+                        if (data.results.length > 0) {
+                            dropdown.classList.remove('hidden');
+                            data.results.forEach((game) => {
+                                const item = document.createElement('div');
+                                item.classList.add(
+                                    'p-4', // Increase padding for more space
+                                    'flex',
+                                    'items-center',
+                                    'hover:bg-gray-100',
+                                    'cursor-pointer',
+                                    'rounded-lg' // Rounded corners for better aesthetics
+                                );
+
+                                // Add game logo
+                                const logo = document.createElement('img');
+                                logo.src = game.logo; // Backend now sends the correct full URL for logos
+                                logo.alt = game.name;
+                                logo.classList.add('!w-20', '!h-10', 'rounded-md', 'mr-1');
+
+                                // Add game name
+                                const name = document.createElement('span');
+                                name.textContent = game.name;
+
+                                // Append logo and name to item
+                                item.appendChild(logo);
+                                item.appendChild(name);
+
+                                // Make item clickable
+                                item.addEventListener('click', () => {
+                                    window.location.href = `/ViewGamePage/${encodeURIComponent(game.name)}`;
+                                });
+
+                                // Append item to dropdown
+                                dropdown.appendChild(item);
+                            });
+                        } else {
+                            dropdown.classList.add('hidden'); // Hide dropdown if no results
+                        }
+                    })
+                    .catch((error) => {
+                        console.error('Error fetching search results:', error);
+                        dropdown.classList.add('hidden');
+                    });
+            } else {
+                dropdown.classList.add('hidden'); // Hide dropdown if input is too short
+            }
+        });
+
+        // Close dropdown if clicked outside
+        document.addEventListener('click', function (event) {
+            if (!searchInput.contains(event.target) && !dropdown.contains(event.target)) {
+                dropdown.classList.add('hidden');
+            }
+        });
+
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // Function to show modal
+            const showModal = (modalId) => {
+                const modal = document.getElementById(modalId);
+                console.log(modalId)
+                if (modal) {
+                    modal.classList.remove('hidden');
+                }
+            };
+
+            // Function to hide modal
+            const hideModal = (modal) => {
+                if (modal) {
+                    modal.classList.add('hidden');
+                    location.reload();
+                }
+            };
+
+            // Event listener for toggle buttons
+            document.querySelectorAll('[data-modal-toggle]').forEach(button => {
+                button.addEventListener('click', () => {
+                    const modalId = button.getAttribute('data-modal-target');
+                    showModal(modalId);
+                });
+            });
+
+            // Event listener for close buttons
+            document.querySelectorAll('[data-modal-hide]').forEach(button => {
+                button.addEventListener('click', () => {
+                    const modal = button.closest('.fixed'); // Get the closest modal
+                    hideModal(modal);
+                    location.reload();
+                });
+            });
+
+            // Optional: Close the modal when clicking outside of it
+            document.querySelectorAll('.fixed').forEach(modal => {
+                modal.addEventListener('click', (event) => {
+                    if (event.target === modal) {
+                        hideModal(modal);
+                    }
+                });
+            });
+        });
+        let player;  // Global player variable to access the iframe player
+
+        function onYouTubeIframeAPIReady() {
+            const iframe = document.getElementById('yt-player');
+            player = new YT.Player(iframe, {
+                events: {
+                    'onStateChange': onPlayerStateChange
+                }
+            });
+        }
+
+        function onPlayerStateChange(event) {
+            if (event.data == YT.PlayerState.PLAYING) {
+                // Video is playing, do something if needed
+            }
+        }
+
+        // Handling popover appearance and video change dynamically
+        const popoverTrigger = document.querySelectorAll('.game-item');
+        const popover = document.getElementById('popover-image');
+        const iframe = document.getElementById('yt-player');
+
+        // Show popover and change the video source when hovering over each game block
+        popoverTrigger.forEach(trigger => {
+            trigger.addEventListener('mouseover', function() {
+                const ytSrc = this.getAttribute('data-yt-src');
+                
+                // Dynamically update the iframe source
+                iframe.src = '';  // Clear the old src to reload the video
+                setTimeout(() => {
+                    iframe.src = ytSrc;  // Set the new source
+                }, 10);
+
+                // Position the popover correctly
+                const rect = trigger.getBoundingClientRect();
+                popover.style.top = `${rect.bottom + window.scrollY + 10}px`;  // Position below the trigger
+                popover.style.left = `${rect.left + window.scrollX+100}px`;  // Align with the left of the trigger
+
+                // Show the popover
+                popover.classList.remove('invisible', 'opacity-0');
+                popover.classList.add('visible', 'opacity-100');
+            });
+
+            // Hide popover and pause the video when mouse leaves the game block
+            trigger.addEventListener('mouseleave', function() {
+                popover.classList.remove('opacity-100');
+                popover.classList.add('invisible', 'opacity-0');
+
+                // Pause the video when popover is hidden
+                player.pauseVideo();
+            });
+        });
+
+        function initializePopover() {
+            const gameBlocks = document.querySelectorAll('.game-block');
+        
+            gameBlocks.forEach(block => {
+                let popover = document.createElement('div');
+                popover.className = 'popover-video absolute z-10 invisible opacity-0 transition-opacity duration-300 bg-white border border-gray-200 rounded-lg shadow-lg w-96 p-4 dark:bg-gray-800 dark:border-gray-600';
+        
+                // Append initially so we can reuse the popover
+                document.body.appendChild(popover);
+        
+                block.addEventListener('mouseover', function () {
+                    const ytSrc = block.getAttribute('data-yt-src') || '';
+                    popover.innerHTML = `
+                        <div class="relative w-full h-0" style="padding-top: 56.25%;">
+                            <iframe src="${ytSrc}" 
+                                    title="Game Video" 
+                                    class="absolute top-0 left-0 w-full h-full rounded-lg" 
+                                    frameborder="0" 
+                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
+                                    referrerpolicy="strict-origin-when-cross-origin" 
+                                    allowfullscreen></iframe>
+                        </div>`;
+        
+                    const rect = block.getBoundingClientRect();
+                    popover.style.top = `${rect.bottom + window.scrollY + 10}px`;
+                    popover.style.left = `${rect.left + window.scrollX}px`;
+                    popover.classList.remove('invisible', 'opacity-0');
+                    popover.classList.add('visible', 'opacity-100');
+                });
+        
+                block.addEventListener('mouseleave', function () {
+                    const iframe = popover.querySelector('iframe');
+                    if (iframe) iframe.src = ''; // Unload to stop video
+                    popover.classList.remove('visible', 'opacity-100');
+                    popover.classList.add('invisible', 'opacity-0');
+                });
+            });
+        }
+
+        function updateNavbarColor() {
+            const navbar = document.getElementById('navbar');
+            const navbar1=document.getElementById('navbar1');
+            const footer=document.getElementById('footer');
+            const currentHour = new Date().getHours();  // Get current hour (0-23)
+    
+            // Apply different background color based on the time
+            if (currentHour >= 6 && currentHour < 18) {
+                // Daytime (6 AM to 6 PM)
+                navbar.classList.remove('bg-[#010321]');
+                navbar.classList.add('bg-base-100');
+                navbar1.classList.remove('bg-[#010321]');
+                navbar1.classList.add('bg-base-100');
+                footer.classList.remove('bg-[#010321]');
+                footer.classList.add('bg-neutral');
+            } else {
+                // Nighttime (6 PM to 6 AM)
+                navbar.classList.remove('bg-base-100');
+                navbar.classList.add('bg-[#010321]');
+                navbar1.classList.remove('bg-base-100');
+                navbar1.classList.add('bg-[#010321]');
+                footer.classList.remove('bg-neutral');
+                footer.classList.add('bg-[#010321]');
+            }
+        }
+    
+        // Call the function to update navbar color when the page loads
+        updateNavbarColor();
+
+        // Logout function that clears the session and redirects to login
+        function logout() {
+            window.location.href = '/logout'; // Redirect to logout route
+        }
+        
+
+    </script>
+</body>
+
+</html>

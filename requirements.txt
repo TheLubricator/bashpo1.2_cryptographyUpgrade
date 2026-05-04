@@ -1,0 +1,6 @@
+Flask==2.3.3
+flask-apscheduler==1.13.1
+sslcommerz-python==1.0.0
+resend==0.1.0
+python-dotenv==1.0.0
+requests==2.31.0

@@ -1,0 +1,836 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wallet Balance and Purchase History</title>
+    <link rel="shortcut icon" href="{{ url_for('static', filename='img/icon.png') }}">
+
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@4.12.10/dist/full.min.css" rel="stylesheet" type="text/css" />
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        inter: ['Inter', 'sans-serif'],
+                    },
+                },
+            },
+        };
+    </script>
+    <script src="https://kit.fontawesome.com/8584240c12.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Manrope:wght@200..800&display=swap"
+        rel="stylesheet">
+</head>
+
+<body class="font-inter">
+
+    <header id="navbar"
+        class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-2 p-2 bg-base-100 rounded-lg">
+        <div id="navbar1" class="flex navbar bg-base-100 justify-start rounded-lg">
+            <div class="ml-5 lg:ml-20 mt-5 px-0.5 py-0.5 w-[80px] lg:w-[120px] relative">
+                <div class="absolute inset-0 bg-gradient-to-r from-sky-700 via-purple-400 to-violet-700 rounded-xl p-2">
+                </div>
+                <a href="/">
+                    <img alt="Tailwind CSS Navbar component" src="{{ url_for('static', filename='img/logo.jpg') }}"
+                        alt="Logo" class="rounded-lg relative z-10">
+                </a>
+            </div>
+        </div>
+        <div class="mt-3 lg:mt-5 lg:mr-5 w-full lg:w-auto">
+            <select id="user-name" name="user_name"
+                class="block rounded-lg w-[auto] lg:w-[200px] h-[40px] bg-gradient-to-r from-[#515151] to-[#676161] text-[#1A97F0] font-bold focus:ring-2 focus:ring-white focus:text-black appearance-none"
+                onchange="handleDropdownChange(this)" required>
+                <option value="" disabled selected
+                    class="bg-gradient-to-r from-[#515151] to-[#676161] text-[#1A97F0] text-center font-bold">
+                    {{ buyer_username }} {{ balance | round(2) }} $
+                </option>
+
+                <option value="view_profile" class="bg-[#b3b3b3] text-white">View My Profile</option>
+                <option value="AddMonitorWallet" class="bg-[#b3b3b3] text-white">Add and Monitor Wallet</option>
+                <option value="update_pass" class="bg-[#b3b3b3] text-white">Update Password</option>
+                <option value="logout" class="bg-[#b3b3b3] text-white">Logout</option>
+            </select>
+        </div>
+    </header>
+    <!-- Update Password Modal -->
+    <div id="UpdatePasswordModal" tabindex="-1" aria-hidden="true"
+        class="hidden overflow-y-auto overflow-x-hidden fixed inset-0 z-50 flex justify-center items-center backdrop-blur-sm bg-black bg-opacity-50">
+        <div class="relative p-4 w-full max-w-xl h-full md:h-auto">
+            <!-- Modal content -->
+            <div class="relative p-4 bg-white rounded-lg shadow dark:bg-gray-800 sm:p-5">
+                <!-- Modal header -->
+                <div class="flex justify-between mb-4 rounded-t sm:mb-5">
+                    <div class="text-lg text-gray-900 md:text-xl dark:text-white">
+                        <h3 class="font-semibold">Update Password</h3>
+                    </div>
+                    <div>
+                        <button type="button"
+                            class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 inline-flex dark:hover:bg-gray-600 dark:hover:text-white"
+                            data-modal-toggle="UpdatePasswordModal">
+                            <svg aria-hidden="true" class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"
+                                xmlns="http://www.w3.org/2000/svg">
+                                <path fill-rule="evenodd"
+                                    d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                                    clip-rule="evenodd"></path>
+                            </svg>
+                            <span class="sr-only">Close modal</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Modal body: Update password form -->
+                <form id="updatePasswordForm" action="/update_password" method="POST" class="space-y-4">
+                    <div>
+                        <label for="current-password"
+                            class="block text-sm font-medium text-gray-900 dark:text-white">Current Password</label>
+                        <input type="password" id="current-password" name="current_password" required
+                            class="mt-2 w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    </div>
+                    <div>
+                        <label for="new-password" class="block text-sm font-medium text-gray-900 dark:text-white">New
+                            Password</label>
+                        <input type="password" id="new-password" name="new_password" required
+                            class="mt-2 w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    </div>
+                    <div>
+                        <label for="confirm-password"
+                            class="block text-sm font-medium text-gray-900 dark:text-white">Confirm New Password</label>
+                        <input type="password" id="confirm-password" name="confirm_password" required
+                            class="mt-2 w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    </div>
+
+                    <!-- Error and Success Messages -->
+                    <div id="password-error" class="text-red-600 hidden">Passwords do not match.</div>
+                    <div id="password-success" class="text-green-600 hidden">Password updated successfully!</div>
+
+                    <div class="mt-4 flex justify-end space-x-2">
+                        <button type="button" class="px-4 py-2 bg-gray-600 text-white rounded-lg"
+                            data-modal-toggle="UpdatePasswordModal">Cancel</button>
+                        <button type="submit" id="submit-password"
+                            class="px-4 py-2 bg-blue-600 text-white rounded-lg">Update</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+
+    <section class="flex justify-items-center">
+        <div
+            class="mx-auto justify-items-center relative bg-[url('{{ url_for('static', filename='img/bg-1.jpg') }}')] bg-cover bg-center w-full sm:h-[auto] lg:h-[800px]">
+            <h1 class="mt-20 font-bold text-3xl lg:text-5xl font-istok tracking-widest text-center">
+                Wallet Balance and Purchase History
+            </h1>
+            <div class="flex flex-col my-5 mx-3 lg:mx-auto h-[auto] lg:w-[1200px] bg-[#0A0221] rounded-xl p-5">
+                <div>
+                    <h1 class="my-5 text-center text-xl lg:text-4xl font-bold">Current Balance {{ balance | round(2) }}
+                        $</h1>
+                </div>
+                <div class="my-5 mx-auto lg:flex lg:flex-col justify-center items-center gap-5">
+                    <div class="flex gap-5">
+                        <!-- Add to Wallet via Credit Card -->
+                        <button type="button" onclick="openModal('creditCardModal')"
+                            class="px-6 h-[auto] lg:w-[300px] lg:h-[50px] bg-blue-800 text-white rounded-lg font-semibold w-full sm:w-[250px]">
+                            Add to wallet via credit card
+                        </button>
+
+                        <!-- Add to Wallet via Gift Card -->
+                        <button type="button" onclick="openModal('giftCardModal')"
+                            class="px-6 h-[auto] lg:w-[300px] lg:h-[50px] bg-blue-800 text-white rounded-lg font-semibold w-full sm:w-[250px]">
+                            Add to wallet via gift card
+                        </button>
+                    </div>
+                    <div class="flex gap-5 mt-5">
+                        <!-- Activate a Product -->
+                        <button type="button" onclick="openModal('activateProductModal')"
+                            class="px-6 py-[auto] h-[auto] lg:w-[300px] lg:h-[50px] bg-blue-800 text-white rounded-lg font-semibold w-full sm:w-[250px]">
+                            Activate a product
+                        </button>
+
+                        <!-- Update Credit Card Info -->
+                        <button type="button" onclick="openModal('purchaseHistoryModal')"
+                        class="px-6 h-[auto] lg:w-[300px] lg:h-[50px] bg-blue-800 text-white rounded-lg font-semibold w-full sm:w-[250px]">
+                        View Purchase History
+                    </button>
+                    </div>
+                   
+                </div>
+            </div>
+        </div>
+
+        <!-- Modals -->
+        <div id="creditCardModal"
+            class="hidden fixed inset-0 z-50 flex justify-center items-center backdrop-blur-sm bg-black bg-opacity-50">
+            <div class="bg-white p-5 rounded-lg shadow-lg">
+                <h2 class="text-lg font-bold mb-4">Add to Wallet via Credit Card</h2>
+                <form id="WalletCreditCardForm" action="/WallettoCreditCard" method="POST" class="space-y-4">
+                    <div class="mb-4">
+                        <label for="wallet" class="block text-sm font-semibold">Enter Amount</label>
+                <input
+                    type="number"
+                    id="wallet"
+                    name="wallet"
+                    min="1"
+                    step="0.01"
+                    class="w-full px-4 py-2 border rounded-lg"
+                    placeholder="Enter amount in $$"
+                    required/>
+        
+                    </div>
+                    <button type="button" class="bg-red-500 text-white px-4 py-2 rounded"
+                        onclick="closeModal('creditCardModal')">Close</button>
+                    <button type="submit" class="bg-green-500 text-white px-4 py-2 rounded">
+                        Submit
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <div id="giftCardModal"
+            class="hidden fixed inset-0 z-50 flex justify-center items-center backdrop-blur-sm bg-black bg-opacity-50">
+            <div class="bg-white p-5 rounded-lg shadow-lg">
+                <h2 class="text-lg font-bold mb-4">Add to Wallet via Gift Card</h2>
+                <form id="RedeemGiftCardForm" action="/RedeemGiftCard" method="POST" class="space-y-4">
+                    <div class="mb-4">
+                        <label for="gift-code" class="block text-sm font-semibold">Gift Card Code</label>
+                        <input type="text" id="gift-code" class="w-full px-4 py-2 border rounded-lg"
+                            placeholder="Enter gift card code" required />
+                    </div>
+                    <button type="button" class="bg-red-500 text-white px-4 py-2 rounded"
+                        onclick="closeModal('giftCardModal')">Close</button>
+                    <button type="submit" class="bg-green-500 text-white px-4 py-2 rounded"
+                        id="submitWalletCode">Submit</button>
+                </form>
+            </div>
+        </div>
+
+        <div id="activateProductModal"
+            class="hidden fixed inset-0 z-50 flex justify-center items-center backdrop-blur-sm bg-black bg-opacity-50">
+            <div class="bg-white p-5 rounded-lg shadow-lg">
+                <h2 class="text-lg font-bold mb-4">Activate a Product</h2>
+                <form id="ActivateProductKeyForm" action="/ActivateProductKey" method="POST" class="space-y-4">
+                    <div class="mb-4">
+                        <label for="product-key" class="block text-sm font-semibold">Product Key</label>
+                        <input type="text" id="product-key" name="product_key"
+                            class="w-full px-4 py-2 border rounded-lg" placeholder="Enter activation key" required />
+                    </div>
+                    <button type="button" class="bg-red-500 text-white px-4 py-2 rounded"
+                        onclick="closeModal('activateProductModal')">Close</button>
+                    <button type="submit" class="bg-green-500 text-white px-4 py-2 rounded"
+                        id="submitProductKey">Submit</button>
+                </form>
+            </div>
+        </div>
+
+
+        <div id="updateCreditCardModal"
+            class="hidden fixed inset-0 z-50 flex justify-center items-center backdrop-blur-sm bg-black bg-opacity-50">
+
+            <div class="bg-white p-5 rounded-lg shadow-lg">
+                <h2 class="text-lg font-bold mb-4">Update Credit Card Info</h2>
+
+                <form id="UpdateCreditCardForm" action="/UpdateCreditCard" method="POST" class="space-y-4">
+                    <div class="mb-4">
+                        <label for="new-card-number" class="block text-sm font-semibold">New Card Number</label>
+                        <input type="text" id="new-card-number" class="w-full px-4 py-2 border rounded-lg"
+                            placeholder="1234 5678 9012 3456" required />
+                    </div>
+                    <div class="mb-4">
+                        <label for="new-expiry-date" class="block text-sm font-semibold">New Expiry Date</label>
+                        <input type="text" id="new-expiry-date" class="w-full px-4 py-2 border rounded-lg"
+                            placeholder="MM/YY" required />
+                    </div>
+                    <div id="card-success" class="text-green-600 hidden">Card info updated successfully!</div>
+                    <button type="button" class="bg-red-500 text-white px-4 py-2 rounded"
+                        onclick="closeModal('updateCreditCardModal')">Close</button>
+                    <button type="submit" class="bg-green-500 text-white px-4 py-2 rounded">Submit</button>
+                </form>
+
+            </div>
+
+        </div>
+
+
+        <div id="purchaseHistoryModal"
+            class="hidden fixed inset-0 z-50 flex justify-center items-center backdrop-blur-sm bg-black bg-opacity-50">
+            <div class="bg-white p-5 rounded-lg shadow-lg">
+                <h2 class="text-lg font-bold text-black mb-4">View Purchase History</h2>
+                <p class="text-black">Here you can see your purchase history.</p>
+                <div class="mt-4">
+                    <div class="flex justify-between font-semibold mb-4">
+                        <div class="w-1/4 text-left text-black">Game Name</div>
+                        <div class="w-1/4 text-left text-black">Amount Paid</div>
+                        <div class="w-1/4 text-left text-black">Action</div>
+                    </div>
+                    <ul id="buyerList" class="list-none">
+                        {% for game in game_info %}
+                        <li class="flex justify-between items-center mb-4">
+                            <span class="w-1/4 text-black">{{ game[0] }}</span> <!-- Game Name -->
+                            <span class="w-1/4 text-black">
+                                {% if game[2]=='Digital' %}
+                                <span>{{ game[1] }} $</span>
+                                {% elif game[2]=='Product_key' %}
+                                <span>Product Key</span>
+                                {% endif %}
+                            </span> <!-- Status -->
+                            <!-- Base Price -->
+                            <div class="w-1/4 text-left">
+
+
+                                <!--end of unused feature(for now)-->
+
+
+                                {% if game[2]=='Digital' %}
+                                <button type="button"
+                                    class="text-white bg-red-600 hover:bg-red-700 focus:ring-4 focus:outline-none focus:ring-red-300 font-medium rounded-lg text-xs px-5 py-1.5 text-center dark:bg-red-500 dark:hover:bg-red-600 dark:focus:ring-red-900"
+                                    data-game_name_refund="{{ game[0] }}" data-price="{{game[1]}}"
+                                    onclick="RefundGame(this)">
+                                    Refund Game
+                                </button>
+                                {% elif game[2]=='Product_key' %}
+                                <button type="button"
+                                    class="text-white bg-orange-600 hover:bg-red-700 focus:ring-4 focus:outline-none focus:ring-red-300 font-medium rounded-lg text-xs px-5 py-1.5 text-center dark:bg-orange-500 dark:hover:bg-orange-600 dark:focus:ring-orange-900"
+                                    data-game_name_refund="{{ game[0] }}">
+                                    Refund unavailable
+                                </button>
+                                {% endif %}
+
+                            </div> <!-- Action -->
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                <button class="bg-red-500 text-white px-4 py-2 rounded"
+                    onclick="closeModal('purchaseHistoryModal')">Close</button>
+
+            </div>
+
+        </div>
+
+        <div id="popup-modal" tabindex="-1"
+            class="hidden overflow-y-auto overflow-x-hidden fixed inset-0 z-50 flex justify-center items-center backdrop-blur-sm bg-black bg-opacity-40">
+            <div class="relative p-4 w-full max-w-md max-h-full">
+                <div class="relative bg-white rounded-lg shadow dark:bg-gray-700">
+                    <button type="button"
+                        class="absolute top-3 end-2.5 text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white"
+                        data-modal-hide="popup-modal">
+                        <svg class="w-3 h-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none"
+                            viewBox="0 0 14 14">
+                            <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6" />
+                        </svg>
+                        <span class="sr-only">Close modal</span>
+                    </button>
+                    <div class="p-4 md:p-5 text-center">
+                        <svg class="mx-auto mb-4 text-gray-400 w-12 h-12 dark:text-gray-200" aria-hidden="true"
+                            xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
+                            <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M10 11V6m0 8h.01M19 10a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                        </svg>
+                        <h3 class="mb-5 text-lg font-normal text-gray-500 dark:text-gray-400">Modal Title</h3>
+                        <div class="modal-body"></div>
+                        <button data-modal-hide="popup-modal" type="button"
+                            class="text-white bg-red-600 hover:bg-red-800 focus:ring-4 focus:outline-none focus:ring-red-300 dark:focus:ring-red-800 font-medium rounded-lg text-sm inline-flex items-center px-5 py-2.5 text-center">
+                            Close
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </section>
+    <footer id="footer"
+        class="flex flex-col lg:flex-row sm:justify-between lg:justify-center items-center  text-neutral-content p-6 lg:p-10 gap-6 lg:gap-[50rem]">
+        <!-- Logo and Description -->
+        <aside class="flex flex-col items-center text-center lg:text-left lg:items-start">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="80" height="80" class="mb-4">
+                <defs>
+                    <linearGradient id="colorful-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" style="stop-color: blue; stop-opacity: 1" />
+                        <stop offset="33%" style="stop-color: pink; stop-opacity: 1" />
+                        <stop offset="66%" style="stop-color: purple; stop-opacity: 1" />
+                        <stop offset="100%" style="stop-color: violet; stop-opacity: 1" />
+                    </linearGradient>
+                </defs>
+                <path d="M30 20 h20 a15 15 0 0 1 0 30 h-20 z 
+                     M30 50 h20 a15 15 0 0 1 0 30 h-20 z" fill="url(#colorful-gradient)" />
+            </svg>
+
+            <p class="text-sm lg:text-base">
+            <h1 class="font-bold text-lg lg:text-xl">
+                <i class="fa-regular fa-copyright"></i> Bashpo
+            </h1>
+            Find everything you love, in one place.
+            </p>
+        </aside>
+
+        <!-- Social Links -->
+        <nav class="text-center lg:text-left">
+            <h6 class="footer-title text-sm lg:text-base font-bold mb-4">Find Us on Socials</h6>
+            <div class="flex justify-center lg:justify-start gap-4">
+                <a href="">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                        class="fill-current">
+                        <path
+                            d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z">
+                        </path>
+                    </svg>
+                </a>
+                <a href="">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                        class="fill-current">
+                        <path
+                            d="M9 8h-3v4h3v12h5v-12h3.642l.358-4h-4v-1.667c0-.955.192-1.333 1.115-1.333h2.885v-5h-3.808c-3.596 0-5.192 1.583-5.192 4.615v3.385z">
+                        </path>
+                    </svg>
+                </a>
+                <a href="">
+                    <i class="fa-brands fa-instagram text-xl"></i>
+                </a>
+                <a href="">
+                    <i class="fa-brands fa-x-twitter text-xl"></i>
+                </a>
+                <a href="">
+                    <i class="fa-brands fa-tiktok text-xl"></i>
+                </a>
+                <a href="">
+                    <i class="fa-brands fa-discord text-xl"></i>
+                </a>
+            </div>
+        </nav>
+    </footer>
+
+    <script>
+
+        function showUpdatePasswordModal() {
+            const modal = document.getElementById('UpdatePasswordModal');
+            const content = document.getElementById('page-content');
+
+            modal.classList.remove('hidden'); // Show modal
+            content.classList.add('blur-sm'); // Blur the background
+            document.body.style.overflow = 'hidden'; // Prevent scrolling
+        }
+
+
+        function initializeModal_update_password() {
+            const modal = document.getElementById('UpdatePasswordModal');
+            const closeModalButton = modal.querySelector('[data-modal-toggle="UpdatePasswordModal"]');
+            const content = document.getElementById('page-content');
+
+            closeModalButton.addEventListener('click', function () {
+                modal.classList.add('hidden'); // Hide modal
+                content.classList.remove('blur-sm'); // Remove blur effect
+                document.body.style.overflow = ''; // Enable scrolling
+            });
+
+            modal.addEventListener('click', function (event) {
+                if (event.target === modal) {
+                    modal.classList.add('hidden'); // Hide modal
+                    content.classList.remove('blur-sm'); // Remove blur effect
+                    document.body.style.overflow = ''; // Enable scrolling
+                }
+            });
+        }
+
+        window.addEventListener('DOMContentLoaded', function () {
+            initializeModal_update_password();
+        });
+
+
+        function openModal(modalId) {
+            const modal = document.getElementById(modalId);
+            modal.classList.remove('hidden');
+            document.body.style.overflow = 'hidden'; // Prevent scrolling
+
+            // Add a click listener to detect outside clicks
+            const closeOnOutsideClick = (event) => {
+                if (event.target === modal) {
+                    closeModal(modalId); // Close the modal if clicked outside
+                }
+            };
+
+            modal.addEventListener('click', closeOnOutsideClick);
+
+            // Store the close listener function in a custom property to remove it later
+            modal._closeOnOutsideClick = closeOnOutsideClick;
+        }
+
+
+        function closeModal(modalId) {
+            const modal = document.getElementById(modalId);
+            modal.classList.add('hidden');
+            document.body.style.overflow = ''; // Restore scrolling
+
+            // Remove the event listener to prevent memory leaks
+            if (modal._closeOnOutsideClick) {
+                modal.removeEventListener('click', modal._closeOnOutsideClick);
+                // Clean up the custom property
+                delete modal._closeOnOutsideClick;
+            }
+        }
+
+        document.getElementById('updatePasswordForm').addEventListener('submit', function (event) {
+            event.preventDefault();
+
+            const currentPassword = document.getElementById('current-password').value;
+            const newPassword = document.getElementById('new-password').value;
+            const confirmPassword = document.getElementById('confirm-password').value;
+
+            // Check if new passwords match
+            if (newPassword !== confirmPassword) {
+                document.getElementById('password-error').classList.remove('hidden');
+                document.getElementById('password-success').classList.add('hidden');
+            } else {
+                // Send the password update request (if the new passwords match)
+                fetch('/update_password', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ current_password: currentPassword, new_password: newPassword })
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            document.getElementById('password-success').classList.remove('hidden');
+                            document.getElementById('password-error').classList.add('hidden');
+                            // Redirect to the homepage after a delay
+                            setTimeout(() => {
+                                window.location.href = '/logout';
+                            }, 2000);
+                        } else {
+                            alert(data.error || 'Something went wrong!');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('Something went wrong!');
+                    });
+            }
+        });
+
+        // Initialize the modal functionality
+        window.addEventListener('DOMContentLoaded', function () {
+            initializeModal_update_password();
+        });
+
+
+        function handleDropdownChange(selectElement) {
+            const selectedValue = selectElement.value;
+            selectElement.value = ""; // This resets the dropdown to the placeholder option
+
+            if (selectedValue === "logout") {
+                logout(); // Call the logout function
+            } else if (selectedValue === "AddMonitorWallet") {
+
+                location.reload(); // changes will be made
+
+
+            } else if (selectedValue === "update_pass") {
+                showUpdatePasswordModal(); // Redirect to update password page
+            }
+            else if (selectedValue === "view_profile") {
+                window.location.href = '/ViewMyProfile'; // Redirect to update password page
+            }
+        }
+        async function handleLogin(event) {
+            event.preventDefault();  // Prevent form submission
+
+            const formData = {
+                username: document.getElementById("username").value,
+                password: document.getElementById("password").value,
+            };
+
+            try {
+                const response = await fetch("/login", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify(formData),
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    window.location.href = result.redirect_url;
+                } else {
+                    alert(result.error);  // Show error message if login fails
+                }
+            } catch (error) {
+                console.error("Error:", error);
+                alert("An unexpected error occurred. Please try again.");
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            document.getElementById('RedeemGiftCardForm').addEventListener('submit', function (event) {
+                event.preventDefault();
+
+                const gift_code = document.getElementById('gift-code').value;
+
+
+                console.log(gift_code);
+
+                // Send the request
+                fetch('/RedeemGiftCard', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        gift_code: gift_code
+                    })
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            const modalTitle = document.querySelector('#popup-modal h3');
+                            const modalBody = document.querySelector('#popup-modal .modal-body');
+
+                            modalTitle.innerHTML = data.message;
+
+
+                            // Show the modal
+                            const modal = document.getElementById('popup-modal');
+                            modal.classList.remove('hidden');
+                            // Redirect to the homepage after a delay
+
+                            setTimeout(() => {
+                                location.reload();
+                            }, 2000);
+                        } else {
+                            const modalTitle = document.querySelector('#popup-modal h3');
+                            const modalBody = document.querySelector('#popup-modal .modal-body');
+
+                            modalTitle.innerHTML = data.message;
+
+
+                            // Show the modal
+                            const modal = document.getElementById('popup-modal');
+                            modal.classList.remove('hidden');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('Something went wrong!');
+                    });
+
+            });
+        });
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const form = document.getElementById('ActivateProductKeyForm');
+            form.addEventListener('submit', function (event) {
+                event.preventDefault();
+                const product_key_input = document.getElementById('product-key');
+                if (!product_key_input) {
+                    console.error('Product key input not found!');
+                    return;
+                }
+                const product_key = product_key_input.value;
+                console.log('Product Key:', product_key);
+                if (!product_key) {
+                    console.error('Product key is empty!');
+                    return;
+                }
+                // Proceed with the fetch request
+                fetch('/ActivateProductKey', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ product_key: product_key })
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            const modalTitle = document.querySelector('#popup-modal h3');
+                            const modalBody = document.querySelector('#popup-modal .modal-body');
+
+                            modalTitle.innerHTML = data.message;
+
+
+                            // Show the modal
+                            const modal = document.getElementById('popup-modal');
+                            modal.classList.remove('hidden');
+                            setTimeout(() => location.reload(), 2000);
+                        } else {
+                            const modalTitle = document.querySelector('#popup-modal h3');
+                            const modalBody = document.querySelector('#popup-modal .modal-body');
+
+                            modalTitle.innerHTML = data.message;
+
+
+                            // Show the modal
+                            const modal = document.getElementById('popup-modal');
+                            modal.classList.remove('hidden');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('Something went wrong!');
+                    });
+            });
+        });
+        function RefundGame(button) {
+            const game_name = button.getAttribute('data-game_name_refund');
+            const price = button.getAttribute('data-price');
+
+            fetch('/RefundGame', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ game_name: game_name, price: price })
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.message) {
+                        const modalTitle = document.querySelector('#popup-modal h3');
+                        const modalBody = document.querySelector('#popup-modal .modal-body');
+
+                        modalTitle.innerHTML = data.message;
+
+
+                        // Show the modal
+                        const modal = document.getElementById('popup-modal');
+                        modal.classList.remove('hidden');
+                        button.closest('li').remove(); // Remove the user from the list
+                        setTimeout(() => location.reload(), 2000);
+                    } else {
+                        alert(data.error); // Display error message
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Something went wrong!');
+                });
+
+        }
+        document.getElementById('UpdateCreditCardForm').addEventListener('submit', function (event) {
+            event.preventDefault();
+
+            const card_number = document.getElementById('new-card-number').value;
+
+            fetch('/UpdateCreditCard', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json', // Ensure this matches the backend expectations
+                },
+                body: JSON.stringify({ card_number: card_number }) // Send the card_number in the body
+            })
+                .then(response => {
+                    console.log("Response status:", response.status); // Debug response status
+                    return response.json(); // Parse JSON
+                })
+                .then(data => {
+                    console.log("Response data:", data); // Debug response data
+
+                    if (data.success) {
+                        console.log("Update successful"); // Log successful updates
+                        document.getElementById('card-success').classList.remove('hidden');
+                        setTimeout(() => {
+                            window.location.href = '/AddMonitorWallet';
+                        }, 2000);
+                    } else {
+                        console.error("Error from server:", data.error);
+                        alert(data.error || 'Something went wrong!');
+                    }
+                })
+                .catch(error => {
+                    console.error("Fetch error:", error); // Catch and log fetch errors
+                    alert('Something went wrong!');
+                });
+        });
+
+      
+        
+
+
+
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // Function to show modal
+            const showModal = (modalId) => {
+                const modal = document.getElementById(modalId);
+                console.log(modalId)
+                if (modal) {
+                    modal.classList.remove('hidden');
+                }
+            };
+
+            // Function to hide modal
+            const hideModal = (modal) => {
+                if (modal) {
+                    modal.classList.add('hidden');
+                    location.reload();
+                }
+            };
+
+            // Event listener for toggle buttons
+            document.querySelectorAll('[data-modal-toggle]').forEach(button => {
+                button.addEventListener('click', () => {
+                    const modalId = button.getAttribute('data-modal-target');
+                    showModal(modalId);
+                });
+            });
+
+            // Event listener for close buttons
+            document.querySelectorAll('[data-modal-hide]').forEach(button => {
+                button.addEventListener('click', () => {
+                    const modal = button.closest('.fixed'); // Get the closest modal
+                    hideModal(modal);
+                    location.reload();
+                });
+            });
+
+            // Optional: Close the modal when clicking outside of it
+            document.querySelectorAll('.fixed').forEach(modal => {
+                modal.addEventListener('click', (event) => {
+                    if (event.target === modal) {
+                        hideModal(modal);
+                    }
+                });
+            });
+        });
+        function updateNavbarColor() {
+            const navbar = document.getElementById('navbar');
+            const navbar1=document.getElementById('navbar1');
+            const footer=document.getElementById('footer');
+            const currentHour = new Date().getHours();  // Get current hour (0-23)
+    
+            // Apply different background color based on the time
+            if (currentHour >= 6 && currentHour < 18) {
+                // Daytime (6 AM to 6 PM)
+                navbar.classList.remove('bg-[#010321]');
+                navbar.classList.add('bg-base-100');
+                navbar1.classList.remove('bg-[#010321]');
+                navbar1.classList.add('bg-base-100');
+                footer.classList.remove('bg-[#010321]');
+                footer.classList.add('bg-neutral');
+            } else {
+                // Nighttime (6 PM to 6 AM)
+                navbar.classList.remove('bg-base-100');
+                navbar.classList.add('bg-[#010321]');
+                navbar1.classList.remove('bg-base-100');
+                navbar1.classList.add('bg-[#010321]');
+                footer.classList.remove('bg-neutral');
+                footer.classList.add('bg-[#010321]');
+            }
+        }
+    
+        // Call the function to update navbar color when the page loads
+        updateNavbarColor();
+
+
+        function logout() {
+            window.location.href = '/logout'; // Redirect to logout route
+        }  
+    </script>
+
+</body>
+
+</html>

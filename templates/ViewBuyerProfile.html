@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title> {{friendusername}}'s Profile</title>
+    <link rel="shortcut icon" href="{{ url_for('static', filename='img/icon.png') }}">
+
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@4.12.10/dist/full.min.css" rel="stylesheet" type="text/css" />
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        inter: ['Inter', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <script src="https://kit.fontawesome.com/8584240c12.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Manrope:wght@200..800&display=swap"
+        rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Istok+Web:wght@400;700&display=swap" rel="stylesheet">
+
+</head>
+
+<body class="font-inter">
+    <header id="navbar"
+        class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-2 p-2 bg-base-100 rounded-lg">
+        <div id="navbar1" class="flex navbar bg-base-100 justify-start rounded-lg">
+            <div class="ml-5 lg:ml-20 mt-5 px-0.5 py-0.5 w-[80px] lg:w-[120px] relative">
+                <div
+                    class="absolute inset-0 bg-gradient-to-r from-sky-700 via-purple-400 to-violet-700 rounded-xl p-[2px]">
+                </div>
+                <a href="/">
+                    <img alt="Tailwind CSS Navbar component" src="{{ url_for('static', filename='img/logo.jpg') }}"
+                        alt="Logo" class="rounded-lg relative z-10">
+                </a>
+            </div>
+        </div>
+        <div class="mt-3 lg:mt-5 lg:mr-5">
+            <select id="user-name" name="user_name"
+                class="block rounded-lg w-full lg:w-[200px] h-[40px] bg-gradient-to-r from-[#515151] to-[#676161] text-[#1A97F0] font-bold focus:ring-2 focus:ring-white focus:text-black appearance-none"
+                onchange="handleDropdownChange(this)" required>
+                <!-- Disabled Option (Gradient Background) -->
+                <option value="" disabled selected
+                    class="bg-gradient-to-r from-[#515151] to-[#676161] text-[#1A97F0] text-center font-bold">
+                    {{ username }} <span class="text-base mb-5 font-bold text-white">{{ balance | round(2) }} $</span>
+                </option>
+                <!-- Dropdown Menu Items -->
+                <option value="view_revenue" class="bg-[#b3b3b3] text-white">View Revenue</option>
+                <option value="logout" class="bg-[#b3b3b3] text-white">Logout</option>
+                <option value="update_pass" class="bg-[#b3b3b3] text-white">Update Password</option>
+            </select>
+        </div>
+        <!-- Update Password Modal -->
+        <div id="UpdatePasswordModal" tabindex="-1" aria-hidden="true"
+            class="hidden overflow-y-auto overflow-x-hidden fixed inset-0 z-50 justify-center items-center flex">
+            <div class="relative p-4 w-full max-w-xl h-full md:h-auto">
+                <!-- Modal content -->
+                <div class="relative p-4 bg-white rounded-lg shadow dark:bg-gray-800 sm:p-5">
+                    <!-- Modal header -->
+                    <div class="flex justify-between mb-4 rounded-t sm:mb-5">
+                        <div class="text-lg text-gray-900 md:text-xl dark:text-white">
+                            <h3 class="font-semibold">
+                                Update Password
+                            </h3>
+                        </div>
+                        <div>
+                            <button type="button"
+                                class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 inline-flex dark:hover:bg-gray-600 dark:hover:text-white"
+                                data-modal-toggle="UpdatePasswordModal">
+                                <svg aria-hidden="true" class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"
+                                    xmlns="http://www.w3.org/2000/svg">
+                                    <path fill-rule="evenodd"
+                                        d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                                        clip-rule="evenodd"></path>
+                                </svg>
+                                <span class="sr-only">Close modal</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Modal body: Update password form -->
+                    <form id="updatePasswordForm" action="/update_password" method="POST" class="space-y-4">
+                        <div>
+                            <label for="current-password"
+                                class="block text-sm font-medium text-gray-900 dark:text-white">Current Password</label>
+                            <input type="password" id="current-password" name="current_password" required
+                                class="mt-2 w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                        </div>
+                        <div>
+                            <label for="new-password"
+                                class="block text-sm font-medium text-gray-900 dark:text-white">New Password</label>
+                            <input type="password" id="new-password" name="new_password" required
+                                class="mt-2 w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                        </div>
+                        <div>
+                            <label for="confirm-password"
+                                class="block text-sm font-medium text-gray-900 dark:text-white">Confirm New
+                                Password</label>
+                            <input type="password" id="confirm-password" name="confirm_password" required
+                                class="mt-2 w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                        </div>
+
+                        <!-- Error and Success Messages -->
+                        <div id="password-error" class="text-red-600 hidden">Passwords do not match.</div>
+                        <div id="password-success" class="text-green-600 hidden">Password updated successfully!</div>
+
+                        <div class="mt-4 flex justify-end space-x-2">
+                            <button type="button" class="px-4 py-2 bg-gray-600 text-white rounded-lg"
+                                data-modal-toggle="UpdatePasswordModal">Cancel</button>
+                            <button type="submit" id="submit-password"
+                                class="px-4 py-2 bg-blue-600 text-white rounded-lg">Update</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div id="DeveloperRevenueModal" tabindex="-1" aria-hidden="true"
+        class="hidden overflow-y-auto overflow-x-hidden fixed inset-0 z-50 flex justify-center items-center backdrop-blur-sm bg-black bg-opacity-50">
+        <div class="relative p-4 w-full max-w-xl h-full md:h-auto">
+            <!-- Modal content -->
+            <div class="relative p-4 bg-white rounded-lg shadow dark:bg-gray-800 sm:p-5">
+                <!-- Modal header -->
+                <div class="flex justify-between mb-4 rounded-t sm:mb-5">
+                    <div class="text-lg text-gray-900 md:text-xl dark:text-white">
+                        <h1 class="font-bold">Total Cashflow: {{total_cash_flow | round(2)}} $</h1>
+                        <h3 class="font-semibold">
+                            Developer Revenue
+                        </h3>
+                    </div>
+                    <div>
+                        <button type="button"
+                            class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 inline-flex dark:hover:bg-gray-600 dark:hover:text-white"
+                            data-modal-toggle="DeveloperRevenueModal">
+                            <svg aria-hidden="true" class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"
+                                xmlns="http://www.w3.org/2000/svg">
+                                <path fill-rule="evenodd"
+                                    d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                                    clip-rule="evenodd"></path>
+                            </svg>
+                            <span class="sr-only">Close modal</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Display Developer Revenue -->
+                <div class="mt-4">
+                    <ul class="list-disc pl-5">
+                        {% for developer in developer_earnings %}
+                        <li class="flex items-center justify-between mb-4">
+                            <span>{{ developer[0] }}</span> <!-- Display the developer username -->
+                            <span>{{ developer[1] | round(2) }} $</span> <!-- Display the balance -->
+                        </li>
+                        {% endfor %}
+                        <span class="font-bold text-sm">Top earning game: {{highest_game[0]}} ({{highest_game[1] |
+                            round(2)}} $)</span> <br>
+                        <span class="font-bold text-sm">Dev with the highest earning (cumulative):
+                            {{highest_dev[0]}} ({{highest_dev[1]| round(2)}} $)</span>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="DeveloperRevenueModal" tabindex="-1" aria-hidden="true"
+    class="hidden overflow-y-auto overflow-x-hidden fixed inset-0 z-50 flex justify-center items-center backdrop-blur-sm bg-black bg-opacity-50">
+    <div class="relative p-4 w-full max-w-xl h-full md:h-auto">
+        <!-- Modal content -->
+        <div class="relative p-4 bg-white rounded-lg shadow dark:bg-gray-800 sm:p-5">
+            <!-- Modal header -->
+            <div class="flex justify-between mb-4 rounded-t sm:mb-5">
+                <div class="text-lg text-gray-900 md:text-xl dark:text-white">
+                    <h1 class="font-bold">Total Cashflow: {{total_cash_flow | round(2)}} $</h1>
+                    <h3 class="font-semibold">
+                        Developer Revenue
+                    </h3>
+                </div>
+                <div>
+                    <button type="button"
+                        class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 inline-flex dark:hover:bg-gray-600 dark:hover:text-white"
+                        data-modal-toggle="DeveloperRevenueModal">
+                        <svg aria-hidden="true" class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"
+                            xmlns="http://www.w3.org/2000/svg">
+                            <path fill-rule="evenodd"
+                                d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                                clip-rule="evenodd"></path>
+                        </svg>
+                        <span class="sr-only">Close modal</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Display Developer Revenue -->
+            <div class="mt-4">
+                <ul class="list-disc pl-5">
+                    {% for developer in developer_earnings %}
+                    <li class="flex items-center justify-between mb-4">
+                        <span>{{ developer[0] }}</span> <!-- Display the developer username -->
+                        <span>{{ developer[1] | round(2) }} $</span> <!-- Display the balance -->
+                    </li>
+                    {% endfor %}
+                    <span class="font-bold text-sm">Top earning game: {{highest_game[0]}} ({{highest_game[1] |
+                        round(2)}} $)</span> <br>
+                    <span class="font-bold text-sm">Dev with the highest earning (cumulative):
+                        {{highest_dev[0]}} ({{highest_dev[1]| round(2)}} $)</span>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+    </header>
+
+    <main class="flex-1 p-0 -m-5">
+        <section class="mt-5 relative">
+            <div
+                class="gap-5 bg-[url('{{ url_for('static', filename='img/bg-1.jpg') }}')] bg-cover bg-center w-full min-h-screen bg-blue-600 opacity-80 z-0">
+                <div class="mt-5">
+                    <h1
+                        class="w-auto px-4 lg:w-[700px] mx-auto lg:mx-20 text-xl sm:text-2xl lg:text-4xl font-bold my-5 text-white text-left">
+                        {{friendusername}}'s General Info
+                    </h1>
+                </div>
+                <div
+                    class="flex flex-col lg:flex-row justify-between items-start lg:items-center mx-4 lg:mx-20 space-y-6 lg:space-y-0">
+                    <!-- Left Content -->
+                    <div
+                        class="box-border h-auto lg:h-[320px] w-full lg:w-[450px] p-4 border rounded-xl bg-[rgba(30,29,55,1)]">
+                        <p class="text-base mb-5 font-bold text-white">Friend username: <span class="text-blue-500 ">{{
+                                friendusername }}</span></p>
+                        <p class="text-base mb-5 font-bold text-white">{{friendusername}}'s email: <span
+                                class="text-blue-500 ">{{friend_email}}</span></p>
+                        <p class="text-base mb-5 font-bold text-white">
+                            {{friendusername}}'s account status:
+                            <span
+                                class="{% if friend_account_status == 'ACTIVE' %}text-green-500{% elif friend_account_status == 'TERMINATED' %}text-red-500{% else %}text-gray-500{% endif %}">
+                                {{friend_account_status}}
+                            </span>
+                        </p>
+
+                    </div>
+
+                    <!-- Right Button -->
+                    <div class="flex justify-end lg:justify-start w-full lg:w-auto">
+
+                        <button type="button" id="ViewOwnedGamesButton" data-modal-target="ViewOwnedGamesModal"
+                            data-modal-toggle="ViewOwnedGamesModal"
+                            class="lg:w-[300px] h-[45px] font-bold bg-gradient-to-r from-blue-900 to-purple-700 text-white rounded-lg">
+                            {{friendusername}}'s Owned Games
+                        </button>
+
+                        <div id="ViewOwnedGamesModal" tabindex="-1" aria-hidden="true"
+                            class="hidden overflow-y-auto overflow-x-hidden fixed inset-0 z-50 flex justify-center items-center backdrop-blur-sm bg-black bg-opacity-40">
+                            <div class="relative p-4 w-full max-w-xl h-full md:h-auto">
+                                <!-- Modal content -->
+                                <div class="relative p-4 bg-white rounded-lg shadow dark:bg-gray-800 sm:p-5">
+                                    <!-- Modal header -->
+                                    <div class="flex justify-between mb-4 rounded-t sm:mb-5">
+                                        <div class="text-lg text-gray-900 md:text-xl dark:text-white">
+                                            <h3 class="font-semibold">
+                                                Owned Games
+                                            </h3>
+                                        </div>
+                                        <div>
+                                            <button type="button"
+                                                class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 inline-flex dark:hover:bg-gray-600 dark:hover:text-white"
+                                                data-modal-toggle="ViewOwnedGamesModal">
+                                                <svg aria-hidden="true" class="w-5 h-5" fill="currentColor"
+                                                    viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                                    <path fill-rule="evenodd"
+                                                        d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                                                        clip-rule="evenodd"></path>
+                                                </svg>
+                                                <span class="sr-only">Close modal</span>
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <!-- Search Bar -->
+                                    <div class="mb-4">
+                                        <input type="text" id="searchInput_games" placeholder="Search by game name..."
+                                            class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring focus:border-blue-300">
+                                    </div>
+
+
+                                    <!-- Display list of active buyers -->
+                                    <div class="mt-4">
+                                        <ul id="friendrequest" class="list-disc pl-5 space-y-4">
+                                            <!-- Added spacing between list items -->
+                                            {% for o_game in friends_games %}
+                                            <li
+                                                class="flex items-center justify-between mb-4 p-4 border-gray-300 rounded-lg bg-transparent">
+                                                <!-- Removed white background -->
+                                                <!-- Request details -->
+                                                <div class="flex flex-col space-y-1">
+                                                    <span
+                                                        class="text-gray-700 font-medium text-white owned_games">{{o_game[0]}}</span>
+
+                                                </div>
+
+                                                <!-- Action buttons -->
+
+                                            </li>
+                                            {% endfor %}
+                                        </ul>
+                                    </div>
+
+                                </div>
+                            </div>
+                        </div>
+
+
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+    <footer id="footer"
+        class="flex flex-col lg:flex-row sm:justify-between lg:justify-center items-center  text-neutral-content p-6 lg:p-10 gap-6 lg:gap-[50rem]">
+        <!-- Logo and Description -->
+        <aside class="flex flex-col items-center text-center lg:text-left lg:items-start">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="80" height="80" class="mb-4">
+                <defs>
+                    <linearGradient id="colorful-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" style="stop-color: blue; stop-opacity: 1" />
+                        <stop offset="33%" style="stop-color: pink; stop-opacity: 1" />
+                        <stop offset="66%" style="stop-color: purple; stop-opacity: 1" />
+                        <stop offset="100%" style="stop-color: violet; stop-opacity: 1" />
+                    </linearGradient>
+                </defs>
+                <path d="M30 20 h20 a15 15 0 0 1 0 30 h-20 z 
+                         M30 50 h20 a15 15 0 0 1 0 30 h-20 z" fill="url(#colorful-gradient)" />
+            </svg>
+
+            <p class="text-sm lg:text-base">
+            <h1 class="font-bold text-lg lg:text-xl">
+                <i class="fa-regular fa-copyright"></i> Bashpo
+            </h1>
+            Find everything you love, in one place.
+            </p>
+        </aside>
+
+        <!-- Social Links -->
+        <nav class="text-center lg:text-left">
+            <h6 class="footer-title text-sm lg:text-base font-bold mb-4">Find Us on Socials</h6>
+            <div class="flex justify-center lg:justify-start gap-4">
+                <a href="">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                        class="fill-current">
+                        <path
+                            d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z">
+                        </path>
+                    </svg>
+                </a>
+                <a href="">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                        class="fill-current">
+                        <path
+                            d="M9 8h-3v4h3v12h5v-12h3.642l.358-4h-4v-1.667c0-.955.192-1.333 1.115-1.333h2.885v-5h-3.808c-3.596 0-5.192 1.583-5.192 4.615v3.385z">
+                        </path>
+                    </svg>
+                </a>
+                <a href="">
+                    <i class="fa-brands fa-instagram text-xl"></i>
+                </a>
+                <a href="">
+                    <i class="fa-brands fa-x-twitter text-xl"></i>
+                </a>
+                <a href="">
+                    <i class="fa-brands fa-tiktok text-xl"></i>
+                </a>
+                <a href="">
+                    <i class="fa-brands fa-discord text-xl"></i>
+                </a>
+            </div>
+        </nav>
+    </footer>
+
+
+    <script>
+        // Function to handle the "Update Password" modal
+        function showUpdatePasswordModal() {
+            const modal = document.getElementById('UpdatePasswordModal');
+            modal.classList.remove('hidden');
+            document.body.style.overflow = 'hidden'; // Prevent body scrolling when modal is open
+        }
+
+        // Close the modal and reset the form if clicked outside of it
+        function initializeModal_update_password() {
+            const modal = document.getElementById('UpdatePasswordModal');
+            const closeModalButton = modal.querySelector('[data-modal-toggle="UpdatePasswordModal"]');
+
+            closeModalButton.addEventListener('click', function () {
+                modal.classList.add('hidden');
+                document.body.style.overflow = '';
+            });
+
+            modal.addEventListener('click', function (event) {
+                if (event.target === modal) {
+                    modal.classList.add('hidden');
+                    document.body.style.overflow = '';
+                }
+            });
+        }
+
+        // Handle form submission for password update
+        document.getElementById('updatePasswordForm').addEventListener('submit', function (event) {
+            event.preventDefault();
+
+            const currentPassword = document.getElementById('current-password').value;
+            const newPassword = document.getElementById('new-password').value;
+            const confirmPassword = document.getElementById('confirm-password').value;
+
+            // Check if new passwords match
+            if (newPassword !== confirmPassword) {
+                document.getElementById('password-error').classList.remove('hidden');
+                document.getElementById('password-success').classList.add('hidden');
+            } else {
+                // Send the password update request (if the new passwords match)
+                fetch('/update_password', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ current_password: currentPassword, new_password: newPassword })
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            document.getElementById('password-success').classList.remove('hidden');
+                            document.getElementById('password-error').classList.add('hidden');
+                            // Redirect to the homepage after a delay
+                            setTimeout(() => {
+                                window.location.href = '/logout';
+                            }, 2000);
+                        } else {
+                            alert(data.error || 'Something went wrong!');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('Something went wrong!');
+                    });
+            }
+        });
+
+        // Initialize the modal functionality
+        window.addEventListener('DOMContentLoaded', function () {
+            initializeModal_update_password();
+        });
+
+        //////////////////////form for publishing/////////////////////////////////////////////////////////////////////
+
+        function initializeSearch_ownedgames() {
+            const searchInput = document.getElementById('searchInput_games');
+            const userList = document.querySelectorAll('#ViewOwnedGamesModal ul li'); // Correct selector
+
+            searchInput.addEventListener('input', function () {
+                const filter = searchInput.value.toLowerCase();
+
+                userList.forEach((userItem) => {
+                    // Correct class is 'owned_games'
+                    const gameName = userItem.querySelector('.owned_games').textContent.toLowerCase();
+
+                    // Show or hide the user based on the search input
+                    if (gameName.includes(filter)) {
+                        userItem.style.display = ''; // Show
+                    } else {
+                        userItem.style.display = 'none'; // Hide
+                    }
+                });
+            });
+        }
+        function showViewOwnedGamesModal() {
+            const modal = document.getElementById('ViewOwnedGamesModal');
+            modal.classList.remove('hidden');
+            document.body.style.overflow = 'hidden'; // Prevent body scrolling when modal is open
+        }
+
+        // Function to initialize modal functionality
+        function initializeModal_OwnedGames() {
+            const openModalButton = document.getElementById('ViewOwnedGamesButton');
+            const modal = document.getElementById('ViewOwnedGamesModal');
+            const closeModalButton = modal.querySelector('[data-modal-toggle="ViewOwnedGamesModal"]');
+
+            // Open the modal when the button is clicked
+            openModalButton.addEventListener('click', function () {
+                modal.classList.remove('hidden'); // Show the modal
+                document.body.style.overflow = 'hidden'; // Prevent body scrolling when modal is open
+            });
+
+            // Close the modal when the close button (X) is clicked
+            closeModalButton.addEventListener('click', function () {
+                modal.classList.add('hidden'); // Hide the modal
+                document.body.style.overflow = ''; // Re-enable body scrolling
+            });
+
+            // Close the modal if the user clicks outside of the modal content (overlay click)
+            modal.addEventListener('click', function (event) {
+                if (event.target === modal) {
+                    modal.classList.add('hidden');
+                    document.body.style.overflow = '';
+                }
+            });
+        }
+
+        window.addEventListener('DOMContentLoaded', function () {
+
+            initializeSearch_ownedgames();
+            initializeModal_OwnedGames();
+
+
+        });
+
+
+        function handleDropdownChange(selectElement) {
+            const selectedValue = selectElement.value;
+            selectElement.value = ""; // This resets the dropdown to the placeholder option
+
+            if (selectedValue === "logout") {
+                logout(); // Call the logout function
+            } else if (selectedValue === "view_revenue") {
+                showDeveloperRevenueModal(); // Call the function to open the Developer Revenue modal
+            } else if (selectedValue === "update_pass") {
+                showUpdatePasswordModal(); // Redirect to update password page
+            }
+        }
+        function showDeveloperRevenueModal() {
+            const modal = document.getElementById('DeveloperRevenueModal');
+            modal.classList.remove('hidden'); // Show the modal
+            document.body.style.overflow = 'hidden'; // Prevent body scrolling when modal is open
+        }
+    
+        function initializeModal_developer_revenue() {
+            const modal = document.getElementById('DeveloperRevenueModal');
+            const closeModalButton = modal.querySelector('[data-modal-toggle="DeveloperRevenueModal"]');
+    
+            // Close the modal when the close button (X) is clicked
+            closeModalButton.addEventListener('click', function () {
+                modal.classList.add('hidden'); // Hide the modal
+                document.body.style.overflow = ''; // Re-enable body scrolling
+            });
+    
+            // Close the modal if the user clicks outside of the modal content (overlay click)
+            modal.addEventListener('click', function (event) {
+                if (event.target === modal) {
+                    modal.classList.add('hidden');
+                    document.body.style.overflow = '';
+                }
+            });
+        }
+        window.addEventListener('DOMContentLoaded', function () {
+            
+            initializeModal_developer_revenue();
+           
+    
+    
+        });
+
+
+        function updateNavbarColor() {
+            const navbar = document.getElementById('navbar');
+            const navbar1=document.getElementById('navbar1');
+            const footer=document.getElementById('footer');
+            const currentHour = new Date().getHours();  // Get current hour (0-23)
+    
+            // Apply different background color based on the time
+            if (currentHour >= 6 && currentHour < 18) {
+                // Daytime (6 AM to 6 PM)
+                navbar.classList.remove('bg-[#010321]');
+                navbar.classList.add('bg-base-100');
+                navbar1.classList.remove('bg-[#010321]');
+                navbar1.classList.add('bg-base-100');
+                footer.classList.remove('bg-[#010321]');
+                footer.classList.add('bg-neutral');
+            } else {
+                // Nighttime (6 PM to 6 AM)
+                navbar.classList.remove('bg-base-100');
+                navbar.classList.add('bg-[#010321]');
+                navbar1.classList.remove('bg-base-100');
+                navbar1.classList.add('bg-[#010321]');
+                footer.classList.remove('bg-neutral');
+                footer.classList.add('bg-[#010321]');
+            }
+        }
+    
+        // Call the function to update navbar color when the page loads
+        updateNavbarColor();
+
+
+        function logout() {
+            window.location.href = '/logout'; // Redirect to logout route
+        }
+
+
+    </script>
+</body>
+
+</html>
