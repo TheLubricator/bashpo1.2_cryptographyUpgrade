@@ -77,41 +77,68 @@ ecc_sign_bytes = ecc_sign_str
 ecc_verify_bytes = ecc_verify_str
 
 # ---------- User private keys (stored as plain JSON, not RSA encrypted) ----------
-def encrypt_user_privates(rsa_priv, ecc_priv):
-    """Store as plain JSON (bypass RSA size limit)."""
-    data = json.dumps({'rsa': rsa_priv, 'ecc': ecc_priv})
-    return data
+import math
 
-def decrypt_user_privates(enc_priv_hex):
-    """Return parsed JSON from stored user private keys (plaintext)."""
-    try:
-        return json.loads(enc_priv_hex)
-    except:
-        # Legacy encrypted format (not used after db reset)
-        plain = rsa_decrypt_str(enc_priv_hex, ADMIN_RSA_PRIV)
-        return json.loads(plain)
+def encrypt_user_privates(rsa_priv, ecc_priv):
+    """
+    Encrypt RSA private key (chunked) and ECC private key (single) with admin RSA.
+    """
+    # RSA private key – chunked encryption
+    rsa_json = json.dumps({'n': rsa_priv[0], 'd': rsa_priv[1]})
+    rsa_bytes = rsa_json.encode('utf-8')
+    key_len = (ADMIN_RSA_PUB[0].bit_length() + 7) // 8   # 256 for 2048-bit RSA
+    max_chunk = key_len - 11   # PKCS#1 v1.5 padding requires at least 11 bytes overhead
+    chunks = [rsa_bytes[i:i+max_chunk] for i in range(0, len(rsa_bytes), max_chunk)]
+    encrypted_chunks = []
+    for chunk in chunks:
+        chunk_str = chunk.decode('utf-8')
+        enc_chunk = rsa_encrypt_str(chunk_str, ADMIN_RSA_PUB)
+        encrypted_chunks.append(enc_chunk)
+    enc_rsa = json.dumps(encrypted_chunks)   # store as JSON list
+
+    # ECC private key – simple encryption (fits)
+    ecc_json = json.dumps(ecc_priv)
+    enc_ecc = rsa_encrypt_str(ecc_json, ADMIN_RSA_PUB)
+
+    return enc_rsa, enc_ecc
+
+def decrypt_user_privates(enc_rsa_json, enc_ecc_hex):
+    """
+    Decrypt RSA private key (chunked) and ECC private key (single).
+    """
+    # Decrypt RSA private key
+    encrypted_chunks = json.loads(enc_rsa_json)
+    decrypted_bytes = b''
+    for chunk_hex in encrypted_chunks:
+        plain_chunk = rsa_decrypt_str(chunk_hex, ADMIN_RSA_PRIV)
+        decrypted_bytes += plain_chunk.encode('utf-8')
+    rsa_json = decrypted_bytes.decode('utf-8')
+    rsa_priv_dict = json.loads(rsa_json)
+    rsa_priv = (rsa_priv_dict['n'], rsa_priv_dict['d'])
+
+    # Decrypt ECC private key
+    ecc_json = rsa_decrypt_str(enc_ecc_hex, ADMIN_RSA_PRIV)
+    ecc_priv = json.loads(ecc_json)
+
+    return rsa_priv, ecc_priv
 
 # ---------- High‑level key and data access helpers ----------
 def get_user_keys(username):
-    """Return (rsa_pub, rsa_priv, ecc_pub, ecc_priv) for given user."""
     if username == 'LordGaben':
         return ADMIN_RSA_PUB, ADMIN_RSA_PRIV, ADMIN_ECC_PUB, ADMIN_ECC_PRIV
     with sqlite3.connect('bashpos_--definitely--_secured_database.db') as db:
         c = db.cursor()
-        c.execute("SELECT rsa_public, rsa_private_encrypted, ecc_public FROM USERS WHERE username = ?", (username,))
+        c.execute("""
+            SELECT rsa_public, encrypted_rsa_private, ecc_public, encrypted_ecc_private
+            FROM USERS WHERE username = ?
+        """, (username,))
         row = c.fetchone()
         if not row:
             return None, None, None, None
-        rsa_pub_str, enc_priv, ecc_pub_str = row
+        rsa_pub_str, enc_rsa_priv, ecc_pub_str, enc_ecc_priv = row
         rsa_pub = tuple(map(int, rsa_pub_str.split(':')))
         ecc_pub = tuple(map(int, ecc_pub_str.split(':')))
-        user_keys = decrypt_user_privates(enc_priv)
-        rsa_priv = tuple(user_keys['rsa'])
-        ecc_priv = user_keys['ecc']
-        print("types", (type(rsa_priv), type(ecc_priv)))
-        # TEMP DEBUG
-        print(f"[KEY DEBUG] user={username} ecc_priv type={type(ecc_priv)} val={str(ecc_priv)[:30]}")
-        print(f"[KEY DEBUG] ecc_pub type={type(ecc_pub)} val={str(ecc_pub)[:30]}")
+        rsa_priv, ecc_priv = decrypt_user_privates(enc_rsa_priv, enc_ecc_priv)
         return rsa_pub, rsa_priv, ecc_pub, ecc_priv
 
 @retry_on_lock()
@@ -214,25 +241,25 @@ def connect_db():
 
     # USERS table (encrypted)
     c.execute("""
-    CREATE TABLE IF NOT EXISTS USERS(
-        username TEXT PRIMARY KEY UNIQUE NOT NULL,
-        password TEXT NOT NULL,
-        store_region TEXT CHECK(store_region IN('NA','LA','EU','ASI','')),
-        card_info INT,
-        company_name TEXT,
-        publisher_name TEXT CHECK(publisher_name IN('bandai_namco','playstation_publishing','xbox_game_studios','square_enix','sega','self','')),
-        user_type TEXT CHECK(user_type IN('buyer','developer','admin')) NOT NULL,
-        account_status TEXT CHECK(account_status IN('active','terminated')) NOT NULL,
-        encrypted_email TEXT NOT NULL,
-        email_sig TEXT NOT NULL,
-        encrypted_buyer_address TEXT,
-        address_sig TEXT,
-        rsa_public TEXT NOT NULL,
-        rsa_private_encrypted TEXT NOT NULL,
-        ecc_public TEXT NOT NULL,
-        ecc_private_encrypted TEXT NOT NULL
-    )
-    """)
+CREATE TABLE IF NOT EXISTS USERS(
+    username TEXT PRIMARY KEY UNIQUE NOT NULL,
+    password TEXT NOT NULL,
+    store_region TEXT CHECK(store_region IN('NA','LA','EU','ASI','')),
+    card_info INT,
+    company_name TEXT,
+    publisher_name TEXT CHECK(publisher_name IN('bandai_namco','playstation_publishing','xbox_game_studios','square_enix','sega','self','')),
+    user_type TEXT CHECK(user_type IN('buyer','developer','admin')) NOT NULL,
+    account_status TEXT CHECK(account_status IN('active','terminated')) NOT NULL,
+    encrypted_email TEXT NOT NULL,
+    email_sig TEXT NOT NULL,
+    encrypted_buyer_address TEXT,
+    address_sig TEXT,
+    rsa_public TEXT NOT NULL,
+    encrypted_rsa_private TEXT NOT NULL,      
+    ecc_public TEXT NOT NULL,
+    encrypted_ecc_private TEXT NOT NULL
+)
+""")
 
     # WALLET_BALANCE (encrypted balance)
     c.execute("""
@@ -263,9 +290,9 @@ def connect_db():
     c.execute("SELECT * FROM USERS WHERE username = 'LordGaben'")
     existing_user = c.fetchone()
     if existing_user is None:
-        # Admin uses the global master keys (loaded from .env)
-        # No need to store encrypted private keys in DB for admin
-        enc_admin_priv = ""  # empty placeholder
+        # Admin uses global master keys – no private keys stored in DB
+        enc_admin_rsa_priv = ""   # empty placeholder
+        enc_admin_ecc_priv = ""   # empty placeholder
         rsa_pub_str = f"{ADMIN_RSA_PUB[0]}:{ADMIN_RSA_PUB[1]}"
         ecc_pub_str = f"{ADMIN_ECC_PUB[0]}:{ADMIN_ECC_PUB[1]}"
         admin_email = "newell@steampowered.com"
@@ -274,9 +301,9 @@ def connect_db():
         admin_password_hash = hash_password('123456')
         c.execute("""
             INSERT INTO USERS (username, password, user_type, account_status,
-                encrypted_email, email_sig, rsa_public, rsa_private_encrypted, ecc_public, ecc_private_encrypted)
+                encrypted_email, email_sig, rsa_public, encrypted_rsa_private, ecc_public, encrypted_ecc_private)
             VALUES ('LordGaben', ?, 'admin', 'active', ?, ?, ?, ?, ?, ?)
-        """, (admin_password_hash, enc_email, email_sig, rsa_pub_str, enc_admin_priv, ecc_pub_str, enc_admin_priv))
+        """, (admin_password_hash, enc_email, email_sig, rsa_pub_str, enc_admin_rsa_priv, ecc_pub_str, enc_admin_ecc_priv))
         # Admin wallet balance
         enc_balance = rsa_encrypt_str('0', ADMIN_RSA_PUB)
         balance_sig = ecc_sign_str(enc_balance.encode(), ADMIN_ECC_PRIV)
@@ -456,17 +483,15 @@ def current_user_query(username):
     else:
         with sqlite3.connect('bashpos_--definitely--_secured_database.db') as db:
             c = db.cursor()
-            c.execute("SELECT encrypted_email, email_sig, rsa_private_encrypted, ecc_public FROM USERS WHERE username = ?", (username,))
+            c.execute("SELECT encrypted_email, email_sig, encrypted_rsa_private, encrypted_ecc_private, ecc_public FROM USERS WHERE username = ?", (username,))
             row = c.fetchone()
             if not row:
                 return None
-            enc_email, email_sig, enc_priv, ecc_pub_str = row
+            enc_email, email_sig, enc_rsa_priv, enc_ecc_priv, ecc_pub_str = row
             ecc_pub = tuple(map(int, ecc_pub_str.split(':')))
-            # Accept dummy signature from overflow
             if email_sig != "dummy_email" and not ecc_verify_str(enc_email.encode(), email_sig, ecc_pub):
                 raise ValueError("Email signature invalid")
-            user_keys = decrypt_user_privates(enc_priv)
-            user_rsa_priv = tuple(user_keys['rsa'])
+            user_rsa_priv, _ = decrypt_user_privates(enc_rsa_priv, enc_ecc_priv)  # returns (rsa_priv, ecc_priv) but we only need RSA
             email = rsa_decrypt_str(enc_email, user_rsa_priv)
             return (email,)
 
@@ -602,18 +627,16 @@ def sale_reset_query(current_time):
 # ---------- Registration with encryption ----------
 def create_buyer_query(username, email, password, buyer_address, store_region, card_info, user_type):
     hashed = hash_password(password)
-    # Generate user keys
     user_rsa_pub, user_rsa_priv = rsa.generate_rsa_keys(2048)
     user_ecc_priv, user_ecc_pub = ecc.generate_ecc_keypair()
 
-    # Encrypt email and address
     enc_email = rsa_encrypt_str(email, user_rsa_pub)
     email_sig = ecc_sign_str(enc_email.encode(), user_ecc_priv)
     enc_address = rsa_encrypt_str(buyer_address, user_rsa_pub) if buyer_address else ''
     address_sig = ecc_sign_str(enc_address.encode(), user_ecc_priv) if buyer_address else ''
 
-    # Encrypt user private keys with admin RSA
-    enc_priv = encrypt_user_privates(user_rsa_priv, user_ecc_priv)
+    # Encrypt private keys with admin RSA
+    enc_rsa_priv, enc_ecc_priv = encrypt_user_privates(user_rsa_priv, user_ecc_priv)
     rsa_pub_str = f"{user_rsa_pub[0]}:{user_rsa_pub[1]}"
     ecc_pub_str = f"{user_ecc_pub[0]}:{user_ecc_pub[1]}"
 
@@ -622,26 +645,33 @@ def create_buyer_query(username, email, password, buyer_address, store_region, c
         c.execute("""
             INSERT INTO USERS (username, password, store_region, card_info, user_type, account_status,
                                encrypted_email, email_sig, encrypted_buyer_address, address_sig,
-                               rsa_public, rsa_private_encrypted, ecc_public, ecc_private_encrypted)
+                               rsa_public, encrypted_rsa_private, ecc_public, encrypted_ecc_private)
             VALUES (?, ?, ?, ?, ?, 'active', ?, ?, ?, ?, ?, ?, ?, ?)
         """, (username, hashed, store_region, card_info, user_type,
               enc_email, email_sig, enc_address, address_sig,
-              rsa_pub_str, enc_priv, ecc_pub_str, enc_priv))
-        # Insert wallet balance
+              rsa_pub_str, enc_rsa_priv, ecc_pub_str, enc_ecc_priv))
+        # Insert wallet balance (unchanged)
         enc_balance = rsa_encrypt_str('0', user_rsa_pub)
         balance_sig = ecc_sign_str(enc_balance.encode(), user_ecc_priv)
         c.execute("INSERT INTO WALLET_BALANCE (username, encrypted_balance, balance_sig) VALUES (?, ?, ?)",
                   (username, enc_balance, balance_sig))
         db.commit()
 
+# Similarly for create_dev_query (no address, but same key storage)
+
 def create_dev_query(username, email, password, company_name, publisher_name, user_type):
     hashed = hash_password(password)
+    # Generate user keys
     user_rsa_pub, user_rsa_priv = rsa.generate_rsa_keys(2048)
     user_ecc_priv, user_ecc_pub = ecc.generate_ecc_keypair()
 
+    # Encrypt email
     enc_email = rsa_encrypt_str(email, user_rsa_pub)
     email_sig = ecc_sign_str(enc_email.encode(), user_ecc_priv)
-    enc_priv = encrypt_user_privates(user_rsa_priv, user_ecc_priv)
+
+    # Encrypt private keys with admin RSA
+    enc_rsa_priv, enc_ecc_priv = encrypt_user_privates(user_rsa_priv, user_ecc_priv)
+
     rsa_pub_str = f"{user_rsa_pub[0]}:{user_rsa_pub[1]}"
     ecc_pub_str = f"{user_ecc_pub[0]}:{user_ecc_pub[1]}"
 
@@ -649,11 +679,16 @@ def create_dev_query(username, email, password, company_name, publisher_name, us
         c = db.cursor()
         c.execute("""
             INSERT INTO USERS (username, password, company_name, publisher_name, user_type, account_status,
-                               encrypted_email, email_sig, rsa_public, rsa_private_encrypted, ecc_public, ecc_private_encrypted)
+                               encrypted_email, email_sig,
+                               rsa_public, encrypted_rsa_private,
+                               ecc_public, encrypted_ecc_private)
             VALUES (?, ?, ?, ?, ?, 'active', ?, ?, ?, ?, ?, ?)
         """, (username, hashed, company_name, publisher_name, user_type,
-              enc_email, email_sig, rsa_pub_str, enc_priv, ecc_pub_str, enc_priv))
-        # Developers also have wallet balance
+              enc_email, email_sig,
+              rsa_pub_str, enc_rsa_priv,
+              ecc_pub_str, enc_ecc_priv))
+
+        # Developers also have a wallet balance
         enc_balance = rsa_encrypt_str('0', user_rsa_pub)
         balance_sig = ecc_sign_str(enc_balance.encode(), user_ecc_priv)
         c.execute("INSERT INTO WALLET_BALANCE (username, encrypted_balance, balance_sig) VALUES (?, ?, ?)",

@@ -1460,8 +1460,8 @@ def rotate_user_keys(username):
     new_rsa_pub, new_rsa_priv = rsa.generate_rsa_keys(2048)
     new_ecc_priv, new_ecc_pub = ecc.generate_ecc_keypair()
 
-    # Store private keys as plain JSON
-    enc_priv = json.dumps({'rsa': new_rsa_priv, 'ecc': new_ecc_priv})
+    # Encrypt new private keys with admin RSA
+    new_enc_rsa_priv, new_enc_ecc_priv = encrypt_user_privates(new_rsa_priv, new_ecc_priv)
 
     # 2. Fetch old keys (current ones in DB)
     old_rsa_pub, old_rsa_priv, old_ecc_pub, old_ecc_priv = get_user_keys(username)
@@ -1494,20 +1494,20 @@ def rotate_user_keys(username):
         new_enc_address = rsa_encrypt_str(plain_address, new_rsa_pub) if plain_address else ""
         new_address_sig = ecc_sign_bytes(new_enc_address.encode(), new_ecc_priv) if plain_address else ""
 
-        # Update USERS table
+        # Update USERS table (with new encrypted private keys)
         rsa_pub_str = f"{new_rsa_pub[0]}:{new_rsa_pub[1]}"
         ecc_pub_str = f"{new_ecc_pub[0]}:{new_ecc_pub[1]}"
         c.execute("""
             UPDATE USERS
             SET encrypted_email = ?, email_sig = ?,
                 encrypted_buyer_address = ?, address_sig = ?,
-                rsa_public = ?, rsa_private_encrypted = ?,
-                ecc_public = ?, ecc_private_encrypted = ?
+                rsa_public = ?, encrypted_rsa_private = ?,
+                ecc_public = ?, encrypted_ecc_private = ?
             WHERE username = ?
         """, (new_enc_email, new_email_sig,
               new_enc_address, new_address_sig,
-              rsa_pub_str, enc_priv,
-              ecc_pub_str, enc_priv,
+              rsa_pub_str, new_enc_rsa_priv,
+              ecc_pub_str, new_enc_ecc_priv,
               username))
 
         # ---- 2b. Wallet balance ----
