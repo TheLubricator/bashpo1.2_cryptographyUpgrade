@@ -1,6 +1,15 @@
 # Cryptographic Core, Key Management & Session Security
 
-## 1. RSA Implementation (From Scratch)
+#| Function | Purpose |
+|----------|---------|
+| `rsa_encrypt_str`, `rsa_decrypt_str` | Encrypt/decrypt strings with RSA |
+| `ecc_sign_bytes`, `ecc_verify_bytes` | Sign/verify bytes with ECDSA |
+| `elgamal_encrypt`, `elgamal_decrypt` | Encrypt/decrypt strings with ElGamal (ECC-based) |
+| `encrypt_user_privates`, `decrypt_user_privates` | Encrypt/decrypt user RSA+ECC private keys using **chunked RSA** (admin key) |
+| `get_user_keys(username)` | Returns `(rsa_pub, rsa_priv, ecc_pub, ecc_priv)` (admin special‑cased) |
+| `get_user_balance`, `set_user_balance` | Encrypt/decrypt wallet balances using user's RSA key |
+| `get_user_email`, `get_user_address` | Decrypt email/address using user's RSA key |
+| `encrypt_admin_data`, `decrypt_admin_data` | Encrypt/decrypt data with global admin RSA keys (wallet codes, game keys, reviews) |Implementation (From Scratch)
 
 ### Prime Generation & Key Generation
 - Miller-Rabin primality test (`is_prime`).
@@ -40,6 +49,21 @@
   `s = k⁻¹ (hash + r*priv) mod n`.
 - **Verify**: `w = s⁻¹ mod n`, `u1 = hash*w mod n`, `u2 = r*w mod n`.  
   `P = u1*G + u2*Pub`. Valid if `P.x mod n == r`.
+
+### ElGamal Encryption & Decryption (on ECC)
+- **ElGamal over ECC**:
+  - **Encryption**:
+    1. Encode plaintext string as integer, then to a point M on the curve.
+    2. Generate random ephemeral private key `k`.
+    3. Compute `c1 = k*G` (ephemeral public key).
+    4. Compute `k_pub = k * recipient_pub`.
+    5. Compute `c2 = M + k_pub`.
+    6. Return `{c1: (x,y), c2: (x,y), offset: int}` (offset used in point encoding).
+  - **Decryption**:
+    1. Compute `shared = priv_key * c1` (same ECDH shared secret as encryption).
+    2. Compute `M = c2 - shared` (point subtraction via negation).
+    3. Recover original integer from M's x-coordinate using offset.
+    4. Convert integer to bytes and decode to UTF-8 plaintext.
 
 ## 3. Helper Functions (Crypto API)
 

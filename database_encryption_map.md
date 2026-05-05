@@ -2,7 +2,12 @@
 
 ## Tables and Encrypted Columns
 
-### 1. `USERS`
+### 1- **User‑specific sensitive data** encrypted with **user's own RSA public key**.
+- **User private keys** encrypted with **admin RSA public key** (chunked for RSA private key). This ensures that even if the database is stolen, private keys remain ciphertext without the admin private key (stored in `.env`).
+- **Server‑only data** encrypted with **global admin RSA key** (e.g., wallet codes, game keys, reviews).
+- **Game publishing descriptions** encrypted with **admin ECC public key via ElGamal** (ECC-based public-key cryptography).
+- **Asymmetric encryption only** – RSA for user data, ElGamal for game descriptions, no symmetric ciphers.
+- **Integrity** via ECDSA signatures using same key type as encryption (user ECC for user data, admin ECC for admin data).ERS`
 | Column | Encrypted? | Key Used | Reason |
 |--------|------------|----------|--------|
 | `username` | No | – | Primary key, used in joins |
@@ -31,8 +36,8 @@
 | Column | Encrypted? | Key Used | Reason |
 |--------|------------|----------|--------|
 | Most columns | No | – | Not sensitive |
-| **`encrypted_basic_description`** | Yes | **Admin RSA public** | Only admin reads |
-| `desc_sig` | N/A | **Admin ECC private** | Integrity |
+| **`encrypted_basic_description`** | Yes | **Admin ECC public (ElGamal)** | Only admin reads; uses ElGamal over ECC |
+| Stored as | – | – | JSON dict with `c1`, `c2`, `offset` |
 
 ### 4. `GAME_LIST`
 | Column | Encrypted? | Key Used | Reason |

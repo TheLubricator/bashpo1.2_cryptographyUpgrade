@@ -34,7 +34,8 @@ BashPO is a secure game distribution and marketplace platform built with Flask. 
 ## Key Features
 
 ### Security
-- ✅ **Asymmetric Encryption Only**: RSA-2048 for confidentiality, ECC for signatures
+- ✅ **Asymmetric Encryption Only**: RSA-2048 for user data, ElGamal for game descriptions, ECC for signatures
+- ✅ **ElGamal over ECC**: Point-based encryption on elliptic curves for game publishing descriptions
 - ✅ **Chunked Encryption**: RSA private keys split into chunks and encrypted with admin key
 - ✅ **Zero-Knowledge Architecture**: Sensitive data encrypted before database storage
 - ✅ **Digital Signatures**: ECDSA signatures on all encrypted data for integrity verification

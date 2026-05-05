@@ -224,13 +224,16 @@ def getRequests_admin_query():
         rows = c.fetchall()
         decrypted_rows = []
         for row in rows:
-            (req_id, uname, gname, genre, year, enc_desc, desc_sig, stat, pay_stat) = row
-            try:
-                plain_desc = decrypt_admin_data(enc_desc, desc_sig)
-            except Exception:
+            req_id, uname, gname, genre, year, enc_data, sig, stat, pay_stat = row
+            # Verify signature first
+            if not ecc_verify_bytes(enc_data.encode(), sig, ADMIN_ECC_PUB):
                 plain_desc = "[Tampered description]"
-            # Return in the same order as before: 
-            # (request_id, username, game_name, game_genre, estimated_release_year, basic_description, status, payment_status)
+            else:
+                try:
+                    cipher_dict = json.loads(enc_data)
+                    plain_desc = ecc.elgamal_decrypt(cipher_dict, ADMIN_ECC_PRIV)
+                except Exception:
+                    plain_desc = "[Tampered description]"
             decrypted_rows.append((req_id, uname, gname, genre, year, plain_desc, stat, pay_stat))
         return decrypted_rows
 
@@ -286,15 +289,20 @@ def wishlist_retrieve_email(username):
 
 
 def Send_Publishing_Request_query(request_id, username, game_name, game_genre, estimated_release_year, basic_description, status, payment_status):
-    # Encrypt basic_description with admin's public key
-    enc_desc, desc_sig = encrypt_admin_data(basic_description)
+    # Encrypt basic_description with admin's ECC public key using ElGamal
+    cipher = ecc.elgamal_encrypt(basic_description, ADMIN_ECC_PUB)
+    enc_data = json.dumps(cipher)   # JSON string
+    
+    # Sign the ciphertext JSON with admin's ECC private key
+    sig = ecc_sign_bytes(enc_data.encode(), ADMIN_ECC_PRIV)
+    
     with sqlite3.connect("bashpos_--definitely--_secured_database.db") as db:
         c = db.cursor()
         c.execute("""
             INSERT INTO GAME_PUBLISH_REQUEST 
             (request_id, username, game_name, game_genre, estimated_release_year, encrypted_basic_description, desc_sig, status, payment_status)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (request_id, username, game_name, game_genre, estimated_release_year, enc_desc, desc_sig, status, payment_status))
+        """, (request_id, username, game_name, game_genre, estimated_release_year, enc_data, sig, status, payment_status))
         db.commit()
 
 def View_Buyer_Profile_query(buyer_username):
@@ -585,7 +593,7 @@ def prod_key_activation_confirm(game_name, product_key):
     else:
         curr_rev = 0.0
     new_rev = curr_rev + dev_cut
-    rsa_pub_dev, _, ecc_priv_dev, _ = get_user_keys(dev_username)
+    rsa_pub_dev, _, ecc_pub_dev, ecc_priv_dev = get_user_keys(dev_username)
     enc_new_rev = rsa_encrypt_str(str(new_rev), rsa_pub_dev)
     try:
         new_sig = ecc_sign_bytes(enc_new_rev.encode(), ecc_priv_dev)
@@ -1038,7 +1046,7 @@ def payment_success_card_purchase(buyer_username):
             else:
                 curr_rev = 0.0
             new_rev = curr_rev + dev_cut
-            rsa_pub_dev, _, ecc_priv_dev, _ = get_user_keys(dev_username)
+            rsa_pub_dev, _,_, ecc_priv_dev = get_user_keys(dev_username)
             enc_new_rev = rsa_encrypt_str(str(new_rev), rsa_pub_dev)
             try:
                 new_sig = ecc_sign_bytes(enc_new_rev.encode(), ecc_priv_dev)

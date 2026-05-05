@@ -10,7 +10,7 @@
 | **Users can create, view, and edit posts, view/update profiles** | ✅ Yes | Reviews (posts) can be created and edited. Profiles show decrypted email/address, balance, owned games. Users can update email/address; developers can update company name. |
 | **All critical data stored encrypted** | ✅ Yes | Email, address, wallet balance, revenue, amount paid, wallet codes, game keys, reviews, publishing descriptions, and **user private keys** – all encrypted with RSA (user or admin keys). |
 | **MAC (e.g., CBC‑MAC or HMAC) to verify integrity** | ✅ Yes (ECDSA) | Every encrypted field is accompanied by an ECDSA signature. Verification before decryption. (No chat system, so no need for HMAC; ECDSA satisfies integrity.) |
-| **Exclusively asymmetric encryption algorithms** | ✅ Yes | Only RSA (encryption) and ECC (signatures). No symmetric encryption anywhere. |
+| **Exclusively asymmetric encryption algorithms** | ✅ Yes | RSA (user data confidentiality), ElGamal over ECC (game descriptions), ECDSA (signatures). No symmetric ciphers. |
 | **At least two different asymmetric algorithms** | ✅ Yes | RSA (confidentiality) and ECC (digital signatures). |
 | **Role‑Based Access Control (RBAC)** | ✅ Yes | `login_required(role)` decorator; `before_request` ensures authenticated access; separate dashboards for buyer, developer, admin. |
 | **Secure session management** | ✅ Yes | Flask sessions with `PERMANENT_SESSION_LIFETIME`. Additional server‑side session token stored in separate DB (`bashpo_secured_session.db`), validated on every request. Invalidated on logout or sensitive changes. |

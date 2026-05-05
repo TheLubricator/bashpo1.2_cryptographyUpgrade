@@ -103,3 +103,68 @@ def ecdsa_verify(message_bytes, signature, public_key):
     if P is None:
         return False
     return (P[0] % n) == r
+
+
+
+def encode_point_from_int(msg_int):
+    """Find a point (x,y) on the curve such that x = msg_int + offset.
+    Returns (x, y, offset). offset < 1000 for short messages."""
+    offset = 0
+    while offset < 1000:
+        x = msg_int + offset
+        rhs = (pow(x, 3, p) + a * x + b) % p
+        # Compute square root using exponentiation (p ≡ 3 mod 4)
+        y = pow(rhs, (p + 1) // 4, p)
+        if (y * y) % p == rhs:
+            return (x, y, offset)
+        offset += 1
+    raise ValueError("Could not encode message to a point")
+
+def decode_int_from_point(x, offset):
+    """Recover the original integer from the point's x-coordinate."""
+    return x - offset
+
+def elgamal_encrypt(plaintext, pub_key):
+    """Encrypt a short string with ElGamal using recipient's ECC public key.
+    Returns a dictionary: {'c1': (x,y), 'c2': (x,y), 'offset': int}."""
+    # Convert plaintext to integer
+    msg_bytes = plaintext.encode('utf-8')
+    msg_int = int.from_bytes(msg_bytes, 'big')
+    # Encode to a point
+    Mx, My, offset = encode_point_from_int(msg_int)
+    M = (Mx, My)
+    # Random ephemeral key
+    k = secrets.randbelow(n - 1) + 1
+    # c1 = k * G
+    c1 = scalar_mult(k, G)
+    # c2 = M + k * pub_key
+    k_pub = scalar_mult(k, pub_key)
+    c2 = point_add(M, k_pub)
+    return {
+        'c1': (c1[0], c1[1]),
+        'c2': (c2[0], c2[1]),
+        'offset': offset
+    }
+
+def elgamal_decrypt(cipher_dict, priv_key):
+    """Decrypt an ElGamal ciphertext using recipient's ECC private key."""
+    c1 = cipher_dict['c1']
+    c2 = cipher_dict['c2']
+    offset = cipher_dict['offset']
+    # shared = priv_key * c1
+    shared = scalar_mult(priv_key, c1)
+    if shared is None:
+        raise ValueError("Decryption failed")
+    # M = c2 - shared
+    shared_inv = (shared[0], -shared[1] % p)
+    M = point_add(c2, shared_inv)
+    if M is None:
+        raise ValueError("Decryption produced point at infinity")
+    # Recover integer
+    msg_int = decode_int_from_point(M[0], offset)
+    # Convert integer to bytes (remove leading zeros)
+    byte_len = (msg_int.bit_length() + 7) // 8
+    if byte_len == 0:
+        return ''
+    plain_bytes = msg_int.to_bytes(byte_len, 'big')
+    return plain_bytes.decode('utf-8')
