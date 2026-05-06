@@ -921,6 +921,65 @@ def generate_wallet():
         generate_wallet_query(value,no_of_cards)
         return jsonify({'ok':True})
 
+@app.route('/chat')
+@login_required('buyer')
+def chat_page():
+    return render_template('chat.html')
+
+
+@app.route('/api/chat/friends')
+@login_required('buyer')
+def chat_friends():
+    username = session['username']
+    with sqlite3.connect('bashpos_--definitely--_secured_database.db') as db:
+        c = db.cursor()
+        c.execute("SELECT username_friendswith FROM FRIENDS WHERE username_me = ?", (username,))
+        friends = [row[0] for row in c.fetchall()]
+    return jsonify(friends)
+
+@app.route('/api/chat/messages/<friend>')
+@login_required('buyer')
+def chat_messages(friend):
+    username = session['username']
+    session_id = get_chat_session(username, friend)
+    with sqlite3.connect('bashpos_--definitely--_secured_database.db') as db:
+        c = db.cursor()
+        c.execute("""
+            SELECT sender, message, mac, timestamp FROM chat_messages
+            WHERE session_id = ? ORDER BY timestamp ASC
+        """, (session_id,))
+        rows = c.fetchall()
+    # Verify MAC for each message (optional, but we can do on client or server)
+    # For simplicity, we return raw; but you can verify here and mark tampered.
+    messages = [{'sender': r[0], 'message': r[1], 'timestamp': r[3]} for r in rows]
+    return jsonify(messages)
+
+@app.route('/api/chat/send', methods=['POST'])
+@login_required('buyer')
+def chat_send():
+    data = request.json
+    friend = data.get('friend')
+    message = data.get('message')
+    if not friend or not message:
+        return jsonify({'error': 'Missing fields'}), 400
+    username = session['username']
+    session_id = get_chat_session(username, friend)
+    # Get sender's MAC key
+    mac_key = get_user_mac_key(username)
+    if not mac_key:
+        return jsonify({'error': 'MAC key not found'}), 500
+    # Compute CBC-MAC
+    mac = cbc_mac.cbc_mac(mac_key, message.encode('utf-8'))
+    mac_hex = mac.hex()
+    with sqlite3.connect('bashpos_--definitely--_secured_database.db') as db:
+        c = db.cursor()
+        c.execute("""
+            INSERT INTO chat_messages (session_id, sender, message, mac)
+            VALUES (?, ?, ?, ?)
+        """, (session_id, username, message, mac_hex))
+        db.commit()
+    return jsonify({'success': True})
+
 @app.route('/RedeemGiftCard', methods=['GET','POST'])
 def redeem_wallet():
     

@@ -53,7 +53,19 @@ def SearchQueryMaker(ordertype,query_filter):
              
     return strings
 
-
+def get_chat_session(user_a, user_b):
+    with sqlite3.connect('bashpos_--definitely--_secured_database.db') as db:
+        c = db.cursor()
+        c.execute("""
+            SELECT id FROM chat_sessions
+            WHERE (user1 = ? AND user2 = ?) OR (user1 = ? AND user2 = ?)
+        """, (user_a, user_b, user_b, user_a))
+        row = c.fetchone()
+        if row:
+            return row[0]
+        c.execute("INSERT INTO chat_sessions (user1, user2) VALUES (?, ?)", (user_a, user_b))
+        db.commit()
+        return c.lastrowid
 
      
 def dev_dashboard():
@@ -104,9 +116,14 @@ def gen_key(game_name, no_of_keys):
         c = db.cursor()
         for _ in range(no_of_keys):
             game_key = uuid.uuid4().hex
-            enc_key, key_sig = encrypt_admin_data(game_key)
-            c.execute("INSERT INTO GAME_KEY (game_key, encrypted_game_key, key_sig, game_name, status) VALUES (?, ?, ?, ?, 'ACTIVE')",
-                      (game_key, enc_key, key_sig, game_name))
+            # Encrypt with ElGamal using admin's ECC public key
+            cipher = ecc.elgamal_encrypt(game_key, ADMIN_ECC_PUB)
+            enc_data = json.dumps(cipher)
+            key_sig = ecc_sign_bytes(enc_data.encode(), ADMIN_ECC_PRIV)
+            c.execute("""
+                INSERT INTO GAME_KEY (game_key, encrypted_game_key, key_sig, game_name, status)
+                VALUES (?, ?, ?, ?, 'ACTIVE')
+            """, (game_key, enc_data, key_sig, game_name))
         db.commit()
     return True
     
@@ -529,8 +546,15 @@ def prod_key_validation(product_key):
         c = db.cursor()
         c.execute("SELECT game_key, encrypted_game_key, key_sig, game_name, status FROM GAME_KEY WHERE status='ACTIVE'")
         for row in c.fetchall():
-            stored_plain = decrypt_admin_data(row[1], row[2])
-            if stored_plain == product_key:
+            stored_key, enc_data, key_sig, game_name, status = row
+            if not ecc_verify_bytes(enc_data.encode(), key_sig, ADMIN_ECC_PUB):
+                continue
+            try:
+                cipher_dict = json.loads(enc_data)
+                decrypted_key = ecc.elgamal_decrypt(cipher_dict, ADMIN_ECC_PRIV)
+            except:
+                continue
+            if decrypted_key == product_key:
                 return row
         return []
 
@@ -624,10 +648,16 @@ def wallet_code_validation(gift_card):
         c = db.cursor()
         c.execute("SELECT wallet_key, encrypted_wallet_key, key_sig, amount, status FROM WALLET_CODE WHERE status='ACTIVE'")
         for row in c.fetchall():
-            stored_plain = decrypt_admin_data(row[1], row[2])
-            if stored_plain == gift_card:
-                print("Valid gift card found:")
-                print(row[3])
+            stored_key, enc_data, key_sig, amount, status = row
+            # Verify signature
+            if not ecc_verify_bytes(enc_data.encode(), key_sig, ADMIN_ECC_PUB):
+                continue
+            try:
+                cipher_dict = json.loads(enc_data)
+                decrypted_key = ecc.elgamal_decrypt(cipher_dict, ADMIN_ECC_PRIV)
+            except:
+                continue
+            if decrypted_key == gift_card:
                 return row
         return []
 
@@ -646,10 +676,16 @@ def generate_wallet_query(value, no_of_cards):
     with sqlite3.connect('bashpos_--definitely--_secured_database.db') as db:
         c = db.cursor()
         for _ in range(no_of_cards):
-            wallet_code = uuid.uuid4().hex
-            enc_code, code_sig = encrypt_admin_data(wallet_code)
-            c.execute("INSERT INTO WALLET_CODE (wallet_key, encrypted_wallet_key, key_sig, amount, status) VALUES (?, ?, ?, ?, 'ACTIVE')",
-                      (wallet_code, enc_code, code_sig, value))
+            wallet_key = uuid.uuid4().hex  # plaintext key
+            # Encrypt with ElGamal using admin's ECC public key
+            cipher = ecc.elgamal_encrypt(wallet_key, ADMIN_ECC_PUB)
+            enc_data = json.dumps(cipher)   # JSON string
+            # Sign the ciphertext
+            key_sig = ecc_sign_bytes(enc_data.encode(), ADMIN_ECC_PRIV)
+            c.execute("""
+                INSERT INTO WALLET_CODE (wallet_key, encrypted_wallet_key, key_sig, amount, status)
+                VALUES (?, ?, ?, ?, 'ACTIVE')
+            """, (wallet_key, enc_data, key_sig, value))
         db.commit()
 
 def admin_dashboard_query():

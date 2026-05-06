@@ -1,15 +1,6 @@
 # Cryptographic Core, Key Management & Session Security
 
-#| Function | Purpose |
-|----------|---------|
-| `rsa_encrypt_str`, `rsa_decrypt_str` | Encrypt/decrypt strings with RSA |
-| `ecc_sign_bytes`, `ecc_verify_bytes` | Sign/verify bytes with ECDSA |
-| `elgamal_encrypt`, `elgamal_decrypt` | Encrypt/decrypt strings with ElGamal (ECC-based) |
-| `encrypt_user_privates`, `decrypt_user_privates` | Encrypt/decrypt user RSA+ECC private keys using **chunked RSA** (admin key) |
-| `get_user_keys(username)` | Returns `(rsa_pub, rsa_priv, ecc_pub, ecc_priv)` (admin special‑cased) |
-| `get_user_balance`, `set_user_balance` | Encrypt/decrypt wallet balances using user's RSA key |
-| `get_user_email`, `get_user_address` | Decrypt email/address using user's RSA key |
-| `encrypt_admin_data`, `decrypt_admin_data` | Encrypt/decrypt data with global admin RSA keys (wallet codes, game keys, reviews) |Implementation (From Scratch)
+## 1. RSA Implementation (From Scratch)
 
 ### Prime Generation & Key Generation
 - Miller-Rabin primality test (`is_prime`).
@@ -65,17 +56,61 @@
     3. Recover original integer from M's x-coordinate using offset.
     4. Convert integer to bytes and decode to UTF-8 plaintext.
 
+**ElGamal point encoding (for strings):**
+```python
+def encode_point_from_int(msg_int):
+    """Find a point (x,y) on curve such that x = msg_int + offset. offset < 1000."""
+    offset = 0
+    while offset < 1000:
+        x = msg_int + offset
+        rhs = (pow(x, 3, p) + a * x + b) % p
+        y = pow(rhs, (p + 1) // 4, p)  # Square root (p ≡ 3 mod 4)
+        if (y * y) % p == rhs:
+            return (x, y, offset)
+        offset += 1
+    raise ValueError("Could not encode message to a point")
+
+def elgamal_encrypt(plaintext, pub_key):
+    """Encrypt string with ElGamal. Returns dict: {'c1': (x,y), 'c2': (x,y), 'offset': int}."""
+    msg_bytes = plaintext.encode('utf-8')
+    msg_int = int.from_bytes(msg_bytes, 'big')
+    Mx, My, offset = encode_point_from_int(msg_int)
+    k = secrets.randbelow(n - 1) + 1
+    c1 = scalar_mult(k, G)
+    k_pub = scalar_mult(k, pub_key)
+    c2 = point_add((Mx, My), k_pub)
+    return {'c1': (c1[0], c1[1]), 'c2': (c2[0], c2[1]), 'offset': offset}
+
+def elgamal_decrypt(cipher_dict, priv_key):
+    """Decrypt ElGamal ciphertext using private key."""
+    c1 = cipher_dict['c1']
+    c2 = cipher_dict['c2']
+    offset = cipher_dict['offset']
+    shared = scalar_mult(priv_key, c1)
+    shared_inv = (shared[0], -shared[1] % p)
+    M = point_add(c2, shared_inv)
+    msg_int = decode_int_from_point(M[0], offset)
+    byte_len = (msg_int.bit_length() + 7) // 8
+    if byte_len == 0:
+        return ''
+    plain_bytes = msg_int.to_bytes(byte_len, 'big')
+    return plain_bytes.decode('utf-8')
+```
+
 ## 3. Helper Functions (Crypto API)
 
 | Function | Purpose |
 |----------|---------|
 | `rsa_encrypt_str`, `rsa_decrypt_str` | Encrypt/decrypt strings with RSA |
 | `ecc_sign_bytes`, `ecc_verify_bytes` | Sign/verify bytes with ECDSA |
+| `elgamal_encrypt`, `elgamal_decrypt` | Encrypt/decrypt strings with ElGamal (ECC-based) |
 | `encrypt_user_privates`, `decrypt_user_privates` | Encrypt/decrypt user RSA+ECC private keys using **chunked RSA** (admin key) |
 | `get_user_keys(username)` | Returns `(rsa_pub, rsa_priv, ecc_pub, ecc_priv)` (admin special‑cased) |
-| `get_user_balance`, `set_user_balance` | Encrypt/decrypt wallet balances using user’s RSA key |
-| `get_user_email`, `get_user_address` | Decrypt email/address using user’s RSA key |
-| `encrypt_admin_data`, `decrypt_admin_data` | Encrypt/decrypt data with global admin RSA keys (wallet codes, game keys, reviews) |
+| `get_user_balance`, `set_user_balance` | Encrypt/decrypt wallet balances using user's RSA key |
+| `get_user_email`, `get_user_address` | Decrypt email/address using user's RSA key |
+| `gen_key(game_name, no_of_keys)` | Generate encrypted game keys using ElGamal (admin ECC public key) |
+| `prod_key_validation(product_key)` | Validate and decrypt product keys |
+| `prod_key_activation_confirm(game_name, product_key)` | Activate a product key and record purchase |
 
 ## 4. Key Management
 
@@ -142,7 +177,7 @@ def decrypt_user_privates(enc_rsa_json, enc_ecc_hex):
 2. OTP verified.
 3. Session token created.
 4. Profile page calls `get_user_email(session['username'])`:
-   - `get_user_keys` returns user’s keys (private keys decrypted via admin key).
+   - `get_user_keys` returns user's keys (private keys decrypted via admin key).
    - DB gives `encrypted_email` and `email_sig`.
    - Signature verified (or dummy accepted).
    - `rsa_decrypt_str` returns plaintext email.
@@ -153,7 +188,7 @@ def decrypt_user_privates(enc_rsa_json, enc_ecc_hex):
 - When game page loads, `decrypt_admin_data(enc_rev, rev_sig)` decrypts using `ADMIN_RSA_PRIV` after verifying the admin signature.
 
 ### Example: Wallet Balance Update
-- `set_user_balance` encrypts new balance with user’s RSA public key and signs with user’s ECC private key.
+- `set_user_balance` encrypts new balance with user's RSA public key and signs with user's ECC private key.
 - `get_user_balance` verifies signature, then decrypts.
 
 ### Overflow Fallback
@@ -165,7 +200,42 @@ def decrypt_user_privates(enc_rsa_json, enc_ecc_hex):
 |-----|---------|
 | **Per‑user RSA** | Encrypt email, address, wallet balance, owned games amount, developer revenue |
 | **Per‑user ECC** | Sign/verify all per‑user encrypted fields |
-| **Admin RSA** | Encrypt wallet codes, game keys, reviews, publishing descriptions, admin’s own data, **and user private keys** (chunked) |
-| **Admin ECC** | Sign/verify all admin‑encrypted data |
+| **Admin RSA** | Encrypt user private keys (chunked), wallet codes |
+| **Admin ECC** | Encrypt/decrypt game keys (ElGamal), game publishing descriptions (ElGamal), sign/verify game keys and descriptions, encrypt reviews |
 
 All encryption and signing are exclusively asymmetric – no symmetric algorithms. Two different asymmetric algorithms (RSA + ECC) satisfy the requirement.
+
+## 8. Game Key & Wallet Code Management
+
+### Game Key Generation & Distribution
+- **Purpose**: Product keys for game distribution (digital rights management).
+- **Storage**: `GAME_KEY` table with columns: `game_key` (primary), `encrypted_game_key`, `key_sig`, `game_name`, `status` (ACTIVE/USED).
+- **Generation** (`gen_key` function):
+  1. Generate random hex string: `game_key = uuid.uuid4().hex`
+  2. Encrypt with admin ECC public key using ElGamal: `cipher = ecc.elgamal_encrypt(game_key, ADMIN_ECC_PUB)`
+  3. Serialize as JSON: `enc_data = json.dumps(cipher)`
+  4. Sign ciphertext: `key_sig = ecc_sign_bytes(enc_data.encode(), ADMIN_ECC_PRIV)`
+  5. Store `(game_key, enc_data, key_sig, game_name, 'ACTIVE')`
+- **Validation** (`prod_key_validation` function):
+  1. Iterate through all ACTIVE game keys in DB.
+  2. Verify signature using admin ECC public key.
+  3. Decrypt ciphertext using admin ECC private key.
+  4. Return matching key or empty list.
+- **Activation** (`prod_key_activation_confirm` function):
+  1. Validate product key against ciphertext.
+  2. On match, insert record into `OWNED_GAMES` table.
+  3. Update game key status to 'USED'.
+  4. Encrypt amount paid using buyer's RSA public key.
+
+### Wallet Code
+- **Purpose**: Prepaid wallet/credit codes for platform accounts.
+- **Storage**: `WALLET_CODE` table with columns: `wallet_key`, `encrypted_wallet_key`, `key_sig`, `amount`, `status` (ACTIVE/USED).
+- **Encryption**: Similar to game keys, uses admin ECC public key via ElGamal.
+- **Signature**: Verified and signed with admin ECC private key.
+- **Status**: Tracks whether wallet code has been redeemed (`ACTIVE` → `USED`).
+
+### Why ElGamal over ECC for Game Keys?
+1. **Server-side asymmetric encryption**: Only admin can decrypt game keys; no symmetric key distribution needed.
+2. **Integrity via signatures**: Each key is signed, preventing tampering.
+3. **Scalability**: Multiple game keys can be generated without managing per-key secrets.
+4. **Compliance**: Exclusively asymmetric encryption (RSA + ECC) matches project requirements.

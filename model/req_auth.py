@@ -13,6 +13,7 @@ import secrets
 import json
 import os
 import time
+from crypto import cbc_mac
 
 def retry_on_lock(max_retries=5, delay=0.1):
     def decorator(func):
@@ -257,7 +258,9 @@ CREATE TABLE IF NOT EXISTS USERS(
     rsa_public TEXT NOT NULL,
     encrypted_rsa_private TEXT NOT NULL,      
     ecc_public TEXT NOT NULL,
-    encrypted_ecc_private TEXT NOT NULL
+    encrypted_ecc_private TEXT NOT NULL,
+              encrypted_mac_key TEXT, 
+              mac_key_sig TEXT 
 )
 """)
 
@@ -270,6 +273,26 @@ CREATE TABLE IF NOT EXISTS USERS(
         FOREIGN KEY (username) REFERENCES USERS(username)
     )
     """)
+    c.execute("""CREATE TABLE IF NOT EXISTS chat_sessions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user1 TEXT NOT NULL,
+    user2 TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user1) REFERENCES USERS(username),
+    FOREIGN KEY (user2) REFERENCES USERS(username)
+)
+              """)
+    c.execute("""CREATE TABLE IF NOT EXISTS chat_messages (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    session_id INTEGER NOT NULL,
+    sender TEXT NOT NULL,
+    message TEXT NOT NULL,
+    mac TEXT NOT NULL,          
+    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (session_id) REFERENCES chat_sessions(id),
+    FOREIGN KEY (sender) REFERENCES USERS(username)
+)
+              """)
 
     # OTP codes (unchanged)
     c.execute("""
@@ -629,6 +652,11 @@ def create_buyer_query(username, email, password, buyer_address, store_region, c
     hashed = hash_password(password)
     user_rsa_pub, user_rsa_priv = rsa.generate_rsa_keys(2048)
     user_ecc_priv, user_ecc_pub = ecc.generate_ecc_keypair()
+    # Generate MAC key for CBC-MAC
+    mac_key = cbc_mac.generate_mac_key()
+    # Encrypt MAC key with admin RSA public key
+    mac_key_hex = rsa_encrypt_str(mac_key.hex(), ADMIN_RSA_PUB)
+    mac_key_sig = ecc_sign_bytes(mac_key_hex.encode(), user_ecc_priv)  # sign with user's ECC
 
     enc_email = rsa_encrypt_str(email, user_rsa_pub)
     email_sig = ecc_sign_str(enc_email.encode(), user_ecc_priv)
@@ -645,11 +673,11 @@ def create_buyer_query(username, email, password, buyer_address, store_region, c
         c.execute("""
             INSERT INTO USERS (username, password, store_region, card_info, user_type, account_status,
                                encrypted_email, email_sig, encrypted_buyer_address, address_sig,
-                               rsa_public, encrypted_rsa_private, ecc_public, encrypted_ecc_private)
-            VALUES (?, ?, ?, ?, ?, 'active', ?, ?, ?, ?, ?, ?, ?, ?)
+                               rsa_public, encrypted_rsa_private, ecc_public, encrypted_ecc_private,encrypted_mac_key,mac_key_sig)
+            VALUES (?, ?, ?, ?, ?, 'active', ?, ?, ?, ?, ?, ?, ?, ?,?,?)
         """, (username, hashed, store_region, card_info, user_type,
               enc_email, email_sig, enc_address, address_sig,
-              rsa_pub_str, enc_rsa_priv, ecc_pub_str, enc_ecc_priv))
+              rsa_pub_str, enc_rsa_priv, ecc_pub_str, enc_ecc_priv,mac_key_hex, mac_key_sig))
         # Insert wallet balance (unchanged)
         enc_balance = rsa_encrypt_str('0', user_rsa_pub)
         balance_sig = ecc_sign_str(enc_balance.encode(), user_ecc_priv)
@@ -658,6 +686,20 @@ def create_buyer_query(username, email, password, buyer_address, store_region, c
         db.commit()
 
 # Similarly for create_dev_query (no address, but same key storage)
+def get_user_mac_key(username):
+    with sqlite3.connect('bashpos_--definitely--_secured_database.db') as db:
+        c = db.cursor()
+        c.execute("SELECT encrypted_mac_key, mac_key_sig, ecc_public FROM USERS WHERE username = ?", (username,))
+        row = c.fetchone()
+        if not row or not row[0]:
+            return None
+        enc_key, sig, ecc_pub_str = row
+        ecc_pub = tuple(map(int, ecc_pub_str.split(':')))
+        if not ecc_verify_bytes(enc_key.encode(), sig, ecc_pub):
+            raise ValueError("MAC key signature invalid")
+        mac_key_hex = rsa_decrypt_str(enc_key, ADMIN_RSA_PRIV)
+        return bytes.fromhex(mac_key_hex)
+    
 
 def create_dev_query(username, email, password, company_name, publisher_name, user_type):
     hashed = hash_password(password)

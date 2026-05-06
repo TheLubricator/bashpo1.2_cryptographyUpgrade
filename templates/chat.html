@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat - BashPo</title>
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@4.12.10/dist/full.min.css" rel="stylesheet" type="text/css" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://kit.fontawesome.com/8584240c12.js" crossorigin="anonymous"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .chat-container { height: calc(100vh - 180px); }
+        .friend-item.active { background-color: #1e1e2f; color: white; }
+    </style>
+</head>
+<body class="bg-base-200">
+
+    <!-- ========== FULL NAVBAR (copied from Buyer_profile.html) ========== -->
+    <header id="navbar" class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-2 p-2 bg-base-100 rounded-lg">
+        <div id="navbar1" class="flex navbar bg-base-100 justify-start rounded-lg">
+            <div class="ml-5 lg:ml-20 mt-5 px-0.5 py-0.5 w-[80px] lg:w-[120px] relative">
+                <div class="absolute inset-0 bg-gradient-to-r from-sky-700 via-purple-400 to-violet-700 rounded-xl p-[2px]">
+                </div>
+                <a href="/">
+                    <img alt="Logo" src="{{ url_for('static', filename='img/logo.jpg') }}" class="rounded-lg relative z-10">
+                </a>
+            </div>
+        </div>
+        <div class="mt-3 lg:mt-5 lg:mr-5">
+            <select id="user-name" name="user_name"
+                class="block rounded-lg w-full lg:w-[200px] h-[40px] bg-gradient-to-r from-[#515151] to-[#676161] text-[#1A97F0] font-bold focus:ring-2 focus:ring-white focus:text-black appearance-none"
+                onchange="handleDropdownChange(this)" required>
+                <option value="" disabled selected
+                    class="bg-gradient-to-r from-[#515151] to-[#676161] text-[#1A97F0] text-center font-bold">
+                    {{ session['username'] }} <span id="user-balance">{{ balance | default(0) | round(2) }} $</span>
+                </option>
+                <option value="view_profile" class="bg-[#b3b3b3] text-white">View My Profile</option>
+                <option value="AddMonitorWallet" class="bg-[#b3b3b3] text-white">Add and Monitor Wallet</option>
+                <option value="update_pass" class="bg-[#b3b3b3] text-white">Update Password</option>
+                <option value="logout" class="bg-[#b3b3b3] text-white">Logout</option>
+            </select>
+        </div>
+    </header>
+
+    <!-- Update Password Modal (same as other pages) -->
+    <div id="UpdatePasswordModal" tabindex="-1" aria-hidden="true"
+        class="hidden overflow-y-auto overflow-x-hidden fixed inset-0 z-50 flex justify-center items-center backdrop-blur-sm bg-black bg-opacity-40">
+        <div class="relative p-4 w-full max-w-xl h-full md:h-auto">
+            <div class="relative p-4 bg-white rounded-lg shadow dark:bg-gray-800 sm:p-5">
+                <div class="flex justify-between mb-4 rounded-t sm:mb-5">
+                    <h3 class="text-lg font-semibold text-gray-900 md:text-xl dark:text-white">Update Password</h3>
+                    <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 inline-flex dark:hover:bg-gray-600 dark:hover:text-white"
+                        data-modal-toggle="UpdatePasswordModal">
+                        <svg aria-hidden="true" class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+                        <span class="sr-only">Close modal</span>
+                    </button>
+                </div>
+                <form id="updatePasswordForm" method="POST" class="space-y-4">
+                    <div><label class="block text-sm font-medium">Current Password</label><input type="password" id="current-password" required class="mt-2 w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"></div>
+                    <div><label class="block text-sm font-medium">New Password</label><input type="password" id="new-password" required class="mt-2 w-full px-3 py-2 border rounded-lg"></div>
+                    <div><label class="block text-sm font-medium">Confirm New Password</label><input type="password" id="confirm-password" required class="mt-2 w-full px-3 py-2 border rounded-lg"></div>
+                    <div id="password-error" class="text-red-600 hidden">Passwords do not match.</div>
+                    <div id="password-success" class="text-green-600 hidden">Password updated successfully!</div>
+                    <div class="mt-4 flex justify-end space-x-2">
+                        <button type="button" class="px-4 py-2 bg-gray-600 text-white rounded-lg" data-modal-toggle="UpdatePasswordModal">Cancel</button>
+                        <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg">Update</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== CHAT CONTENT ========== -->
+    <div class="container mx-auto p-4">
+        <div class="chat-container flex gap-4 bg-base-100 rounded-xl shadow-lg overflow-hidden">
+            <!-- Left panel: Friends list -->
+            <div class="w-1/3 bg-base-200 border-r border-base-300 p-4">
+                <h2 class="text-xl font-bold mb-4">Friends</h2>
+                <div id="friendsList" class="space-y-2">
+                    <div class="text-center text-base-content/50">Loading...</div>
+                </div>
+            </div>
+
+            <!-- Right panel: Chat area -->
+            <div class="w-2/3 flex flex-col">
+                <div class="bg-base-200 p-3 border-b border-base-300">
+                    <h2 id="chatWithLabel" class="text-lg font-semibold">Select a friend to chat</h2>
+                </div>
+                <div id="messages" class="flex-1 overflow-y-auto p-4 space-y-3 bg-base-100">
+                    <!-- Messages appear here -->
+                </div>
+                <div class="p-4 border-t border-base-300 bg-base-200">
+                    <div class="flex gap-2">
+                        <input type="text" id="messageInput" placeholder="Type a message..." 
+                               class="input input-bordered flex-1" disabled>
+                        <button id="sendBtn" class="btn btn-primary" disabled>Send</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // (Same JavaScript as before, with one addition: populate balance from session)
+        let currentFriend = null;
+        let pollInterval = null;
+
+        const friendsListDiv = document.getElementById('friendsList');
+        const messagesDiv = document.getElementById('messages');
+        const messageInput = document.getElementById('messageInput');
+        const sendBtn = document.getElementById('sendBtn');
+        const chatWithLabel = document.getElementById('chatWithLabel');
+
+        // Load friend list
+        function loadFriends() {
+            fetch('/api/chat/friends')
+                .then(res => res.json())
+                .then(friends => {
+                    if (friends.length === 0) {
+                        friendsListDiv.innerHTML = '<div class="text-center text-base-content/50">No friends yet. Add friends from your profile.</div>';
+                        return;
+                    }
+                    friendsListDiv.innerHTML = '';
+                    friends.forEach(f => {
+                        const btn = document.createElement('button');
+                        btn.className = 'btn btn-ghost w-full justify-start text-left friend-item';
+                        btn.textContent = f;
+                        btn.onclick = (function(friend) { return function() { selectFriend(friend); }; })(f);
+                        friendsListDiv.appendChild(btn);
+                    });
+                })
+                .catch(err => console.error('Error loading friends:', err));
+        }
+
+        function selectFriend(friend) {
+            currentFriend = friend;
+            chatWithLabel.textContent = `Chat with ${friend}`;
+            messageInput.disabled = false;
+            sendBtn.disabled = false;
+            // Remove active class from all, add to clicked
+            document.querySelectorAll('.friend-item').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            loadMessages(friend);
+            if (pollInterval) clearInterval(pollInterval);
+            pollInterval = setInterval(() => {
+                if (currentFriend) loadMessages(currentFriend);
+            }, 3000);
+        }
+
+        function loadMessages(friend) {
+            fetch(`/api/chat/messages/${friend}`)
+                .then(res => res.json())
+                .then(messages => {
+                    messagesDiv.innerHTML = '';
+                    if (messages.length === 0) {
+                        messagesDiv.innerHTML = '<div class="text-center text-base-content/50">No messages yet. Say hello!</div>';
+                        return;
+                    }
+                    messages.forEach(msg => {
+                        const isMe = (msg.sender === '{{ session["username"] }}');
+                        const div = document.createElement('div');
+                        div.className = `chat ${isMe ? 'chat-end' : 'chat-start'}`;
+                        div.innerHTML = `
+                            <div class="chat-header">${msg.sender}</div>
+                            <div class="chat-bubble ${isMe ? 'chat-bubble-primary' : 'chat-bubble-secondary'}">${escapeHtml(msg.message)}</div>
+                            <div class="chat-footer text-xs opacity-50">${new Date(msg.timestamp).toLocaleTimeString()}</div>
+                        `;
+                        messagesDiv.appendChild(div);
+                    });
+                    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+                })
+                .catch(err => console.error('Error loading messages:', err));
+        }
+
+        function sendMessage() {
+            if (!currentFriend) return;
+            const message = messageInput.value.trim();
+            if (!message) return;
+            fetch('/api/chat/send', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({friend: currentFriend, message: message})
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    messageInput.value = '';
+                    loadMessages(currentFriend);
+                } else {
+                    alert('Failed to send message: ' + (data.error || 'Unknown error'));
+                }
+            })
+            .catch(err => {
+                console.error('Send error:', err);
+                alert('Network error. Please try again.');
+            });
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Dropdown handler (copy from buyer profile)
+        function handleDropdownChange(selectElement) {
+            const selectedValue = selectElement.value;
+            selectElement.value = "";
+            if (selectedValue === "logout") {
+                window.location.href = '/logout';
+            } else if (selectedValue === "AddMonitorWallet") {
+                window.location.href = '/AddMonitorWallet';
+            } else if (selectedValue === "update_pass") {
+                const modal = document.getElementById('UpdatePasswordModal');
+                modal.classList.remove('hidden');
+                document.body.style.overflow = 'hidden';
+            } else if (selectedValue === "view_profile") {
+                window.location.href = '/ViewMyProfile';
+            }
+        }
+
+        // Password update modal logic (same as buyer profile)
+        function initializeModal_update_password() {
+            const modal = document.getElementById('UpdatePasswordModal');
+            const closeBtn = modal.querySelector('[data-modal-toggle="UpdatePasswordModal"]');
+            if (closeBtn) {
+                closeBtn.onclick = function() {
+                    modal.classList.add('hidden');
+                    document.body.style.overflow = '';
+                };
+            }
+            modal.onclick = function(e) { if (e.target === modal) { modal.classList.add('hidden'); document.body.style.overflow = ''; } };
+        }
+        document.getElementById('updatePasswordForm')?.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const cur = document.getElementById('current-password').value;
+            const newPwd = document.getElementById('new-password').value;
+            const conf = document.getElementById('confirm-password').value;
+            if (newPwd !== conf) {
+                document.getElementById('password-error').classList.remove('hidden');
+                document.getElementById('password-success').classList.add('hidden');
+                return;
+            }
+            fetch('/update_password', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ current_password: cur, new_password: newPwd })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('password-success').classList.remove('hidden');
+                    document.getElementById('password-error').classList.add('hidden');
+                    setTimeout(() => window.location.href = '/logout', 2000);
+                } else alert(data.error);
+            });
+        });
+        initializeModal_update_password();
+
+        // Fetch balance for display (optional)
+        fetch('/current_user')
+            .then(res => res.json())
+            .then(data => {
+                if (data.balance) document.getElementById('user-balance').innerText = data.balance;
+            });
+
+        loadFriends();
+        window.addEventListener('beforeunload', () => { if (pollInterval) clearInterval(pollInterval); });
+        sendBtn.onclick = sendMessage;
+        messageInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendMessage(); });
+    </script>
+</body>
+</html>
