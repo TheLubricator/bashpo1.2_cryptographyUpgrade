@@ -1598,6 +1598,14 @@ def rotate_user_keys(username):
                 WHERE game_name = ?
             """, (new_enc_rev, new_rev_sig, gname))
 
+        # ---- 2e. MAC key signature update (if user has a MAC key) ----
+        c.execute("SELECT encrypted_mac_key, mac_key_sig FROM USERS WHERE username = ?", (username,))
+        mac_row = c.fetchone()
+        if mac_row and mac_row[0]:
+            encrypted_mac_key_hex = mac_row[0]
+            new_mac_key_sig = ecc_sign_bytes(encrypted_mac_key_hex.encode(), new_ecc_priv)
+            c.execute("UPDATE USERS SET mac_key_sig = ? WHERE username = ?", (new_mac_key_sig, username))
+
         db.commit()
 
     # Return a message – the admin route will handle session clearing
