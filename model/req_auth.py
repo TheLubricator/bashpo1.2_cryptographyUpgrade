@@ -699,7 +699,17 @@ def get_user_mac_key(username):
             raise ValueError("MAC key signature invalid")
         mac_key_hex = rsa_decrypt_str(enc_key, ADMIN_RSA_PRIV)
         return bytes.fromhex(mac_key_hex)
-    
+
+def verify_chat_mac(sender: str, message: str, mac_hex: str) -> bool:
+    """
+    Verify CBC-MAC of a chat message using the sender's MAC key.
+    Returns True if valid, False otherwise.
+    """
+    key = get_user_mac_key(sender)
+    if key is None:
+        return False
+    computed = cbc_mac.cbc_mac(key, message.encode('utf-8'))
+    return computed.hex() == mac_hex   
 
 def create_dev_query(username, email, password, company_name, publisher_name, user_type):
     hashed = hash_password(password)

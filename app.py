@@ -949,9 +949,18 @@ def chat_messages(friend):
             WHERE session_id = ? ORDER BY timestamp ASC
         """, (session_id,))
         rows = c.fetchall()
-    # Verify MAC for each message (optional, but we can do on client or server)
-    # For simplicity, we return raw; but you can verify here and mark tampered.
-    messages = [{'sender': r[0], 'message': r[1], 'timestamp': r[3]} for r in rows]
+    messages = []
+    for sender, msg, mac_hex, ts in rows:
+        # Verify MAC using sender's key
+        from model.req_auth import verify_chat_mac   # import inside to avoid circular
+        if not verify_chat_mac(sender, msg, mac_hex):
+            # Tampered message – replace content
+            msg = "[Message integrity compromised]"
+        messages.append({
+            'sender': sender,
+            'message': msg,
+            'timestamp': ts
+        })
     return jsonify(messages)
 
 @app.route('/api/chat/send', methods=['POST'])

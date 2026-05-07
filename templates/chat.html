@@ -12,9 +12,27 @@
         body { font-family: 'Inter', sans-serif; }
         .chat-container { height: calc(100vh - 180px); }
         .friend-item.active { background-color: #1e1e2f; color: white; }
+        .chat-bubble {
+    word-break: break-word;
+    white-space: normal;
+    max-width: 80%;
+}
+.bg-blurred {
+    background-image: url('{{ url_for("static", filename="img/bg-1.jpg") }}');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+}
     </style>
 </head>
-<body class="bg-base-200">
+<body class="bg-base-200 font-inter">
+    <!-- Fixed background with image -->
+     
+    <div class="fixed inset-0 -z-10 bg-blurred"></div>
+
+    <!-- Foreground with blur -->
+    <div class="relative z-10 backdrop-blur-sm min-h-screen">
+    
 
     <!-- ========== FULL NAVBAR (copied from Buyer_profile.html) ========== -->
     <header id="navbar" class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-2 p-2 bg-base-100 rounded-lg">
@@ -93,13 +111,14 @@
                 <div class="p-4 border-t border-base-300 bg-base-200">
                     <div class="flex gap-2">
                         <input type="text" id="messageInput" placeholder="Type a message..." 
-                               class="input input-bordered flex-1" disabled>
+       class="input input-bordered flex-1" maxlength="500" disabled>
                         <button id="sendBtn" class="btn btn-primary" disabled>Send</button>
                     </div>
                 </div>
             </div>
         </div>
     </div>
+    </div> <!-- End of blurred background wrapper -->
 
     <script>
         // (Same JavaScript as before, with one addition: populate balance from session)
@@ -175,8 +194,13 @@
 
         function sendMessage() {
             if (!currentFriend) return;
-            const message = messageInput.value.trim();
-            if (!message) return;
+    const message = messageInput.value.trim();
+    if (!message) return;
+    // Enforce max length (redundant with maxlength, but safe)
+    if (message.length > 500) {
+        alert("Message must be 500 characters or less.");
+        return;
+    }
             fetch('/api/chat/send', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
